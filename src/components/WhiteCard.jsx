@@ -55,24 +55,17 @@ export default function WhiteCard({ card, index = 0 }) {
       transition={{ duration: 0.35, delay: index * 0.06, ease: 'easeOut' }}
       className="w-full bg-white/95 backdrop-blur-md rounded-[1.75rem] p-4 sm:p-5 shadow-sm shadow-slate-200/60 border border-slate-100/90 hover:shadow-md transition-shadow duration-300"
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* Left Side: Pastel Badge + Title + Subtext */}
-        <div className="flex items-start gap-3.5 flex-1 min-w-0">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${card.badgeColor || 'bg-amber-100 text-amber-600 border-amber-200'}`}>
-            <IconComp className="w-5 h-5 stroke-[2.2]" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h4 className="text-base font-bold text-slate-800 tracking-tight leading-snug">
-              {card.title}
-            </h4>
-            <p className="text-xs font-medium text-slate-500 mt-1 leading-relaxed">
-              {card.subtext}
-            </p>
-          </div>
+      {/* Zone 1: Header Row — icon (shrink-0) | title (flex-1) | badge/gauge (shrink-0) */}
+      <div className="flex items-start gap-3">
+        <div className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center border ${card.badgeColor || 'bg-amber-100 text-amber-600 border-amber-200'}`}>
+          <IconComp className="w-5 h-5 stroke-[2.2]" />
         </div>
 
-        {/* Right Side Element: Gauge OR Checkmark OR Status Pill */}
+        <h3 className="min-w-0 flex-1 text-base font-bold text-slate-800 tracking-tight leading-snug">
+          {card.title}
+        </h3>
+
+        {/* Right-side badge/gauge — shrink-0, never pushes title */}
         <div className="shrink-0 flex items-center justify-center ml-1">
           {card.type === 'gauge' && (
             <CircularGauge
@@ -101,13 +94,28 @@ export default function WhiteCard({ card, index = 0 }) {
         </div>
       </div>
 
-      {/* Bottom Tag Pill */}
-      {card.tag && (
-        <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-          <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
-          <span className="truncate">{card.tag}</span>
-        </div>
+      {/* Zone 2: Body — full width below the header row */}
+      {card.subtext && (
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">
+          {card.subtext}
+        </p>
       )}
+
+      {/* Zone 3: Footer — source chip + info button */}
+      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
+        {/* Source chip */}
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+          <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+          <span className="truncate max-w-[180px]">{card.tag || 'Weather data'}</span>
+        </div>
+        {/* Why this card — 44×44 tap target */}
+        <button
+          aria-label="Why this card?"
+          className="h-11 w-11 -mr-2 grid place-items-center text-slate-400 hover:text-amber-500 transition-colors"
+        >
+          <Info className="w-4 h-4" />
+        </button>
+      </div>
     </motion.div>
   );
 }
