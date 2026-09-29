@@ -118,7 +118,36 @@ function computeLiveOverrides(ctx) {
                : 'bg-amber-50 text-amber-700 border-amber-200',
   };
 
-  // ─── Parent persona ───────────────────────────────────────────────────────
+  // ─── Traveller persona ───────────────────────────────────────────
+  // t3: Visibility (reuses same hourly data as commuter c1)
+  const travVisM = hourly[ctx.hour]?.visibility ?? 10000;
+  const travVisKm = (travVisM / 1000).toFixed(1);
+  overrides['t3'] = {
+    subtext: `Visibility: ${travVisKm} km. ${travVisM < 1000 ? '⚠️ Dense fog — exercise extreme caution on roads. Fog alert: <1000 m.' : 'Clear conditions. Good for road travel and flight operations.'}`,
+    statusText: travVisM < 1000 ? `${travVisKm} km • Dense Fog` : `${travVisKm} km • Clear`,
+    statusColor: travVisM < 1000
+      ? 'bg-red-50 text-red-700 border-red-200'
+      : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  };
+
+  // ─── Parent persona ──────────────────────────────────────────────
+  // p1: School commute safety — checks morning rain probability, visibility, storm codes
+  const morningHours = hourly.filter((h) => h.hour >= 7 && h.hour <= 9);
+  const morningRainProb = morningHours.length
+    ? Math.max(...morningHours.map((h) => h.rainProb))
+    : (daily.precipProbMax?.[0] ?? 10);
+  const morningVisM = morningHours.length
+    ? Math.min(...morningHours.map((h) => h.visibility))
+    : 10000;
+  const morningHasStorm = morningHours.some((h) => h.weatherCode >= 95);
+  const commuteRisk = morningRainProb >= 60 || morningVisM < 1000 || morningHasStorm;
+  overrides['p1'] = {
+    subtext: `Morning (7–9 AM): Rain probability ${morningRainProb}%, visibility ${(morningVisM / 1000).toFixed(1)} km${morningHasStorm ? ', thunderstorm risk detected' : ''}. ${commuteRisk ? '⚠️ Use caution during the school commute.' : 'Safe commute conditions based on weather data.'}`,
+    statusText: commuteRisk ? '⚠️ Use Caution' : 'Safe Commute',
+    statusColor: commuteRisk
+      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  };
   const pickupRainProb = daily.precipProbMax?.[0] ?? 40;
   overrides['p2'] = {
     subtext: `Rain probability at pickup time: ${pickupRainProb}%. ${pickupRainProb >= 40 ? 'Keep an umbrella in the car.' : 'Low rain risk at pickup time.'}`,

@@ -29,11 +29,10 @@ export const PERSONAS = [
         type: 'status',
         statusText: 'AQI 38 • Good',
         statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        tag: 'Mock data • Production: CPCB/Open-Meteo AQ API',
+        tag: 'Open-Meteo • air-quality API (us_aqi, pm2_5, pm10)',
       },
       {
         id: 'h2',
-        // F4: Replaced "Vitamin D Sun Exposure Score" with UV Index card
         title: 'UV Index',
         badgeIcon: 'Sun',
         badgeColor: 'bg-amber-100 text-amber-600 border-amber-200',
@@ -41,22 +40,20 @@ export const PERSONAS = [
         type: 'status',
         statusText: 'UV 3 • Moderate',
         statusColor: 'bg-amber-50 text-amber-700 border-amber-200',
-        tag: 'Mock data • Production: Open-Meteo UV Index',
+        tag: 'Open-Meteo • hourly uv_index',
       },
       {
         id: 'h3',
-        // F4: Replaced "Hydration 2.5L Target" — removed litre claim
         title: 'Humidity & Heat',
         badgeIcon: 'Droplets',
         badgeColor: 'bg-cyan-100 text-cyan-600 border-cyan-200',
         subtext: 'Relative humidity: 50%. Heat index: 25°C (Comfortable). Drink water regularly, especially during outdoor activity.\n\nGeneral information, not medical advice.',
         type: 'check',
         statusText: 'Comfortable',
-        tag: 'Mock data • Formula: Rothfusz heat index',
+        tag: 'Formula: Rothfusz heat index • Open-Meteo humidity',
       },
       {
         id: 'h4',
-        // F4: Replaced "Outdoor Wellness Index 92" — now Outdoor Comfort Index with formula
         title: 'Outdoor Comfort Index',
         badgeIcon: 'Smile',
         badgeColor: 'bg-emerald-100 text-emerald-600 border-emerald-200',
@@ -64,6 +61,17 @@ export const PERSONAS = [
         type: 'gauge',
         gaugeValue: 72,
         tag: 'Formula: 0.35×heat + 0.30×AQI + 0.15×UV + 0.20×rain',
+      },
+      {
+        id: 'h5',
+        title: 'Pollen',
+        badgeIcon: 'Wind',
+        badgeColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+        subtext: 'Pollen data is not available for this region in the prototype. No public pollen API covers most of India yet.\n\nCheck your local air quality station for pollen counts. General information, not medical advice.',
+        type: 'status',
+        statusText: 'Not Available',
+        statusColor: 'bg-slate-50 text-slate-500 border-slate-200',
+        tag: 'Mock data • No pollen feed for India in prototype',
       },
     ],
     quickQuestions: [
@@ -103,7 +111,7 @@ export const PERSONAS = [
         subtext: 'Heat index 25°C (Comfortable). Low cardiac strain risk during morning high-intensity sessions. Reduce intensity if heat index rises above 32°C.',
         type: 'check',
         statusText: 'Low Risk',
-        tag: 'Formula: Rothfusz heat index',
+        tag: 'Formula: Rothfusz heat index • Open-Meteo temp & humidity',
       },
       {
         id: 'fit2',
@@ -113,7 +121,7 @@ export const PERSONAS = [
         subtext: 'Wind: 8 km/h from NW. Trails are dry. Good conditions for outdoor running. Calm enough for stable form.',
         type: 'check',
         statusText: 'Good Conditions',
-        tag: 'Mock data • Production: Open-Meteo wind',
+        tag: 'Open-Meteo • wind_speed_10m',
       },
       {
         id: 'fit3',
@@ -124,7 +132,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: 'UV 3 • Moderate',
         statusColor: 'bg-amber-50 text-amber-700 border-amber-200',
-        tag: 'Mock data • Production: Open-Meteo UV Index',
+        tag: 'Open-Meteo • hourly uv_index',
       },
       {
         id: 'fit4',
@@ -134,7 +142,7 @@ export const PERSONAS = [
         subtext: 'Sunrise: 6:12 AM · Sunset: 6:38 PM. Best running light available 6–9 AM and 5–6:30 PM.',
         type: 'check',
         statusText: 'Daylight Clear',
-        tag: 'Mock data • Production: Open-Meteo daily',
+        tag: 'Open-Meteo • daily sunrise / sunset',
       },
     ],
     quickQuestions: [
@@ -175,7 +183,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: '1.1 m • Moderate',
         statusColor: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-        tag: 'Mock data • Production: Open-Meteo Marine API',
+        tag: 'Open-Meteo Marine API • wave_height, wave_period',
       },
       {
         id: 'b2',
@@ -185,7 +193,7 @@ export const PERSONAS = [
         subtext: 'Sea surface temp: 28°C. Comfortable for swimming without a wetsuit in tropical conditions.',
         type: 'check',
         statusText: '28°C • Warm',
-        tag: 'Mock data • Production: Open-Meteo Marine API',
+        tag: 'Open-Meteo Marine API • sea_surface_temperature',
       },
       {
         id: 'b3',
@@ -196,7 +204,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: 'UV 7 • High',
         statusColor: 'bg-amber-50 text-amber-700 border-amber-200',
-        tag: 'Mock data • Production: Open-Meteo UV Index',
+        tag: 'Open-Meteo • uv_index_max (daily)',
       },
       {
         id: 'b4',
@@ -244,11 +252,11 @@ export const PERSONAS = [
         title: 'Packing Suggestions',
         badgeIcon: 'Briefcase',
         badgeColor: 'bg-purple-100 text-purple-600 border-purple-200',
-        subtext: 'Rain probability >50% → pack a raincoat & umbrella. Max temp >32°C → light cotton + sunscreen. UV ≥6 → sunscreen + hat. Rule-based from destination forecast.',
+        subtext: 'Rain probability >50% → pack a raincoat & umbrella. Max temp >32°C → light cotton + sunscreen. UV ≥6 → sunscreen + hat. Rule-based from forecast.',
         type: 'status',
         statusText: 'Mock • Rule-based',
         statusColor: 'bg-purple-50 text-purple-700 border-purple-200',
-        tag: 'Mock data • Rule-based from forecast',
+        tag: 'Mock data • Rule-based from local forecast',
       },
       {
         id: 't2',
@@ -268,7 +276,7 @@ export const PERSONAS = [
         subtext: 'Visibility: 10 km. Clear conditions. No fog reported. Good for road travel and flight operations.',
         type: 'check',
         statusText: '10 km • Clear',
-        tag: 'Mock data • Production: Open-Meteo hourly visibility',
+        tag: 'Open-Meteo • hourly visibility',
       },
       {
         id: 't4',
@@ -318,7 +326,7 @@ export const PERSONAS = [
         subtext: 'Morning window (7–9 AM): dry roads, 10 km visibility, no thunderstorm. Safe commute conditions based on precipitation probability and visibility.',
         type: 'check',
         statusText: 'Safe Commute',
-        tag: 'Mock data • Formula: rain prob + visibility + storm codes',
+        tag: 'Formula: rain prob + visibility + storm codes (Open-Meteo)',
       },
       {
         id: 'p2',
@@ -329,7 +337,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: '40% Rain Risk',
         statusColor: 'bg-sky-50 text-sky-700 border-sky-200',
-        tag: 'Mock data • Production: Open-Meteo hourly rain probability',
+        tag: 'Open-Meteo • hourly precipitation_probability',
       },
       {
         id: 'p3',
@@ -340,7 +348,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: 'UV 3 • Moderate',
         statusColor: 'bg-amber-50 text-amber-700 border-amber-200',
-        tag: 'Mock data • Production: Open-Meteo UV Index',
+        tag: 'Open-Meteo • hourly uv_index',
       },
       {
         id: 'p4',
@@ -350,7 +358,7 @@ export const PERSONAS = [
         subtext: 'Evening window (5–6:30 PM): humidity 52%, heat index comfortable, UV low. Good conditions for outdoor play in shaded areas.',
         type: 'check',
         statusText: 'Good Conditions',
-        tag: 'Formula: heat index + UV + rain probability',
+        tag: 'Formula: Outdoor Comfort Index (Open-Meteo data)',
       },
     ],
     quickQuestions: [
@@ -391,7 +399,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: '0.28 m³/m³ • Moist',
         statusColor: 'bg-blue-50 text-blue-700 border-blue-200',
-        tag: 'Mock data • Production: Open-Meteo soil_moisture_0_to_1cm',
+        tag: 'Open-Meteo • soil_moisture_0_to_1cm',
       },
       {
         id: 'f2',
@@ -401,7 +409,7 @@ export const PERSONAS = [
         subtext: 'Expected rainfall next 7 days: ~12 mm total. Significant rain tomorrow evening (6–10 PM). Consider skipping irrigation today.',
         type: 'check',
         statusText: '12 mm Forecast',
-        tag: 'Mock data • Production: Open-Meteo daily precipitation_sum',
+        tag: 'Open-Meteo • daily precipitation_sum (7-day)',
       },
       {
         id: 'f3',
@@ -411,7 +419,7 @@ export const PERSONAS = [
         subtext: 'Wind: 8 km/h (safe for spraying). Humidity 50%. Good conditions for foliar spray before 11 AM. Avoid spraying when wind >15 km/h.',
         type: 'check',
         statusText: 'Spraying Allowed',
-        tag: 'Mock data • Wind & humidity from Open-Meteo',
+        tag: 'Open-Meteo • wind_speed_10m & humidity',
       },
       {
         id: 'f4',
@@ -421,7 +429,7 @@ export const PERSONAS = [
         subtext: 'Min night temp: 18°C. Frost risk when min temp ≤4°C (air-temp heuristic). No frost threat tonight. Check local agromet advisory for crop-specific guidance.',
         type: 'check',
         statusText: 'No Frost Risk',
-        tag: 'Mock data • Heuristic: min temp ≤4°C = frost risk',
+        tag: 'Formula: frost when min temp ≤4°C (Open-Meteo daily)',
       },
     ],
     quickQuestions: [
@@ -461,7 +469,7 @@ export const PERSONAS = [
         subtext: 'Visibility: 10 km during 8 AM rush. No fog. Fog alert triggers when visibility <1000 m. Clear driving and transit conditions.',
         type: 'check',
         statusText: '10 km • No Fog',
-        tag: 'Mock data • Production: Open-Meteo hourly visibility',
+        tag: 'Open-Meteo • hourly visibility',
       },
       {
         id: 'c2',
@@ -472,7 +480,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: '30% Evening Rain',
         statusColor: 'bg-sky-50 text-sky-700 border-sky-200',
-        tag: 'Mock data • Production: Open-Meteo hourly rain probability',
+        tag: 'Open-Meteo • hourly precipitation_probability',
       },
       {
         id: 'c3',
@@ -533,7 +541,7 @@ export const PERSONAS = [
         subtext: 'Rain probability this evening (6–11 PM): 10%. Low risk for outdoor events. Consider a backup plan when rain probability exceeds 40%.',
         type: 'check',
         statusText: '10% • Low Risk',
-        tag: 'Mock data • Production: Open-Meteo hourly rain probability',
+        tag: 'Open-Meteo • hourly precipitation_probability',
       },
       {
         id: 'ep2',
@@ -544,7 +552,7 @@ export const PERSONAS = [
         type: 'status',
         statusText: '6 km/h • Safe',
         statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        tag: 'Mock data • Production: Open-Meteo wind_speed_10m',
+        tag: 'Open-Meteo • wind_speed_10m',
       },
       {
         id: 'ep3',
@@ -554,7 +562,7 @@ export const PERSONAS = [
         subtext: 'Sunset: 6:22 PM. Golden hour: 5:45–6:30 PM. Ideal natural lighting for outdoor photography sessions.',
         type: 'check',
         statusText: 'Sunset 6:22 PM',
-        tag: 'Mock data • Production: Open-Meteo daily sunset',
+        tag: 'Open-Meteo • daily sunset',
       },
       {
         id: 'ep4',

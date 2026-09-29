@@ -65,10 +65,26 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
   const gaugeValue  = liveOverride?.gaugeValue  ?? card.gaugeValue;
   const statusColor = liveOverride?.statusColor ?? card.statusColor;
 
-  // Parse source note from card.tag — strip the "Mock data • " prefix for display
-  const sourceNote = card.tag?.replace(/^Mock data •\s*/i, '')
-                              .replace(/^Live •\s*/i, '')
-                              .replace(/^Formula:\s*/i, '') ?? '';
+  // ── SourceChip logic ────────────────────────────────────────────────────
+  // A card is "intentionally always-mock" when its tag explicitly starts with
+  // "Mock data" AND there is no liveOverride (e.g. tide times, traffic, IMD).
+  // Any card that gets a liveOverride from HomeScreen computed real data → green.
+  const isAlwaysMock = card.tag?.toLowerCase().startsWith('mock') && !liveOverride;
+  const isFormula    = card.tag?.startsWith('Formula:');
+  const showLiveChip = isLive && !!liveOverride && !isAlwaysMock;
+
+  // Provider: first segment of tag before " • " (e.g. "Open-Meteo Marine API")
+  // Falls back to "Open-Meteo" when tag is a formula or missing.
+  const chipProvider = (!isAlwaysMock && !isFormula && card.tag)
+    ? card.tag.split(' • ')[0].trim()
+    : 'Open-Meteo';
+
+  // Note shown under the chip (formula text or mock explanation, never "Production: ...")
+  const chipNote = isFormula
+    ? card.tag.replace(/^Formula:\s*/, '').trim()
+    : isAlwaysMock
+    ? card.tag.replace(/^Mock data •?\s*/i, '').trim() || undefined
+    : undefined;
 
   return (
     <motion.div
@@ -125,11 +141,11 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
 
       {/* ── Zone 3: Footer — SourceChip + info button ──────────────────────── */}
       <div className="mt-3 flex items-end justify-between border-t border-slate-100 pt-2">
-        {/* SourceChip: live green dot or mock grey dot */}
         <SourceChip
-          isLive={isLive && !card.tag?.toLowerCase().startsWith('mock')}
+          isLive={showLiveChip}
           fetchedAt={fetchedAt}
-          note={card.tag?.startsWith('Formula:') ? card.tag : sourceNote || undefined}
+          provider={chipProvider}
+          note={chipNote}
         />
 
         {/* Why this card? — 44×44 tap target (A5 sheet trigger) */}
