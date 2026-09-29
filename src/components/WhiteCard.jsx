@@ -20,10 +20,9 @@ import {
   CheckCircle2,
   Sparkles,
   Info,
-  Clock,
-  Check
 } from 'lucide-react';
 import CircularGauge from './CircularGauge';
+import SourceChip from './SourceChip';
 
 const BADGE_ICONS = {
   Smile,
@@ -44,8 +43,32 @@ const BADGE_ICONS = {
   ThermometerSun,
 };
 
-export default function WhiteCard({ card, index = 0 }) {
+/**
+ * WhiteCard — 3-zone info card (F1 layout fix).
+ *
+ * Props from personaData:
+ *   card   {object}  — static card data (title, subtext, type, …)
+ *   index  {number}  — stagger animation index
+ *
+ * Props from weather context (A4):
+ *   isLive      {boolean}  — whether weatherCtx is from a live API
+ *   fetchedAt   {number}   — unix ms when data was fetched
+ *   liveOverride {object}  — optional { subtext, statusText, gaugeValue, statusColor }
+ *                            computed from real ctx values; overrides static card data
+ */
+export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, liveOverride }) {
   const IconComp = BADGE_ICONS[card.badgeIcon] || Sparkles;
+
+  // Merge live override (computed from ctx) with static card data
+  const subtext     = liveOverride?.subtext     ?? card.subtext;
+  const statusText  = liveOverride?.statusText  ?? card.statusText;
+  const gaugeValue  = liveOverride?.gaugeValue  ?? card.gaugeValue;
+  const statusColor = liveOverride?.statusColor ?? card.statusColor;
+
+  // Parse source note from card.tag — strip the "Mock data • " prefix for display
+  const sourceNote = card.tag?.replace(/^Mock data •\s*/i, '')
+                              .replace(/^Live •\s*/i, '')
+                              .replace(/^Formula:\s*/i, '') ?? '';
 
   return (
     <motion.div
@@ -55,7 +78,8 @@ export default function WhiteCard({ card, index = 0 }) {
       transition={{ duration: 0.35, delay: index * 0.06, ease: 'easeOut' }}
       className="w-full bg-white/95 backdrop-blur-md rounded-[1.75rem] p-4 sm:p-5 shadow-sm shadow-slate-200/60 border border-slate-100/90 hover:shadow-md transition-shadow duration-300"
     >
-      {/* Zone 1: Header Row — icon (shrink-0) | title (flex-1) | badge/gauge (shrink-0) */}
+      {/* ── Zone 1: Header Row ─────────────────────────────────────────────── */}
+      {/* icon (shrink-0) | title (flex-1 min-w-0) | badge/gauge (shrink-0)   */}
       <div className="flex items-start gap-3">
         <div className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center border ${card.badgeColor || 'bg-amber-100 text-amber-600 border-amber-200'}`}>
           <IconComp className="w-5 h-5 stroke-[2.2]" />
@@ -65,11 +89,11 @@ export default function WhiteCard({ card, index = 0 }) {
           {card.title}
         </h3>
 
-        {/* Right-side badge/gauge — shrink-0, never pushes title */}
+        {/* Right badge — shrink-0, never pushes title */}
         <div className="shrink-0 flex items-center justify-center ml-1">
           {card.type === 'gauge' && (
             <CircularGauge
-              value={card.gaugeValue || 82}
+              value={gaugeValue || 82}
               max={100}
               size={48}
               strokeWidth={4.5}
@@ -78,37 +102,37 @@ export default function WhiteCard({ card, index = 0 }) {
               subText="/100"
             />
           )}
-
           {card.type === 'check' && (
             <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-2xs">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
-              <span>{card.statusText || 'Optimal'}</span>
+              <span>{statusText || 'Optimal'}</span>
             </div>
           )}
-
           {card.type === 'status' && (
-            <div className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${card.statusColor || 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-              {card.statusText}
+            <div className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${statusColor || 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+              {statusText}
             </div>
           )}
         </div>
       </div>
 
-      {/* Zone 2: Body — full width below the header row */}
-      {card.subtext && (
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {card.subtext}
+      {/* ── Zone 2: Body — full width below header ─────────────────────────── */}
+      {subtext && (
+        <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">
+          {subtext}
         </p>
       )}
 
-      {/* Zone 3: Footer — source chip + info button */}
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
-        {/* Source chip */}
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-          <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
-          <span className="truncate max-w-[180px]">{card.tag || 'Weather data'}</span>
-        </div>
-        {/* Why this card — 44×44 tap target */}
+      {/* ── Zone 3: Footer — SourceChip + info button ──────────────────────── */}
+      <div className="mt-3 flex items-end justify-between border-t border-slate-100 pt-2">
+        {/* SourceChip: live green dot or mock grey dot */}
+        <SourceChip
+          isLive={isLive && !card.tag?.toLowerCase().startsWith('mock')}
+          fetchedAt={fetchedAt}
+          note={card.tag?.startsWith('Formula:') ? card.tag : sourceNote || undefined}
+        />
+
+        {/* Why this card? — 44×44 tap target (A5 sheet trigger) */}
         <button
           aria-label="Why this card?"
           className="h-11 w-11 -mr-2 grid place-items-center text-slate-400 hover:text-amber-500 transition-colors"

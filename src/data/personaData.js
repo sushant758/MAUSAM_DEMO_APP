@@ -584,11 +584,11 @@ export const PERSONAS = [
 ];
 
 export const MOCK_LOCATIONS = [
-  { id: 'bengaluru', name: 'Indiranagar, Bengaluru', country: 'India', tempC: 24, tempF: 75, condition: 'Partly Sunny', humidity: '52%', wind: '8 km/h' },
-  { id: 'mumbai', name: 'Bandra West, Mumbai', country: 'India', tempC: 29, tempF: 84, condition: 'Humid & Sunny', humidity: '76%', wind: '14 km/h' },
-  { id: 'delhi', name: 'Connaught Place, New Delhi', country: 'India', tempC: 31, tempF: 88, condition: 'Hazy Sun', humidity: '40%', wind: '6 km/h' },
-  { id: 'london', name: 'South Kensington, London', country: 'UK', tempC: 15, tempF: 59, condition: 'Passing Showers', humidity: '68%', wind: '12 km/h' },
-  { id: 'newyork', name: 'Manhattan, New York', country: 'USA', tempC: 21, tempF: 70, condition: 'Clear Skies', humidity: '45%', wind: '10 km/h' },
-  { id: 'shimla', name: 'Mall Road, Shimla', country: 'India', tempC: 14, tempF: 57, condition: 'Crisp Mountain Air', humidity: '55%', wind: '5 km/h' },
-  { id: 'tokyo', name: 'Shibuya, Tokyo', country: 'Japan', tempC: 18, tempF: 64, condition: 'Gentle Breeze', humidity: '50%', wind: '9 km/h' },
+  { id: 'bengaluru', name: 'Indiranagar, Bengaluru', country: 'India', lat: 12.97, lon: 77.59, tempC: 24, tempF: 75, condition: 'Partly Sunny', humidity: '52%', wind: '8 km/h' },
+  { id: 'mumbai',    name: 'Bandra West, Mumbai',    country: 'India', lat: 19.06, lon: 72.83, tempC: 29, tempF: 84, condition: 'Humid & Sunny', humidity: '76%', wind: '14 km/h' },
+  { id: 'delhi',     name: 'Connaught Place, New Delhi', country: 'India', lat: 28.63, lon: 77.22, tempC: 31, tempF: 88, condition: 'Hazy Sun', humidity: '40%', wind: '6 km/h' },
+  { id: 'london',    name: 'South Kensington, London', country: 'UK',    lat: 51.50, lon: -0.18, tempC: 15, tempF: 59, condition: 'Passing Showers', humidity: '68%', wind: '12 km/h' },
+  { id: 'newyork',   name: 'Manhattan, New York',    country: 'USA',   lat: 40.71, lon: -74.01, tempC: 21, tempF: 70, condition: 'Clear Skies', humidity: '45%', wind: '10 km/h' },
+  { id: 'shimla',    name: 'Mall Road, Shimla',      country: 'India', lat: 31.10, lon: 77.17, tempC: 14, tempF: 57, condition: 'Crisp Mountain Air', humidity: '55%', wind: '5 km/h' },
+  { id: 'tokyo',     name: 'Shibuya, Tokyo',         country: 'Japan', lat: 35.68, lon: 139.65, tempC: 18, tempF: 64, condition: 'Gentle Breeze', humidity: '50%', wind: '9 km/h' },
 ];
