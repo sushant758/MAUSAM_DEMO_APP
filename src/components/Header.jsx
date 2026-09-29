@@ -173,7 +173,7 @@ export default function Header({
                 className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-full hover:bg-blue-100 transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Undo</span>
+                <span>{t('banner.undo')}</span>
               </button>
               {/* Dismiss */}
               <button

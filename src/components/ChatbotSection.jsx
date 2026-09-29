@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { sendChatMessage } from '../services/chat';
+import { useLanguage } from '../i18n/LanguageContext';
 
 // ─── F9: ONE shared assistant ─────────────────────────────────────────────────
 // - sharedMessages / setSharedMessages: the single global message list (from HomeScreen)
@@ -33,16 +34,17 @@ export default function ChatbotSection({
   const recognitionRef = useRef(null);
 
   const personaId = persona.id;
+  const { lang, t, tp } = useLanguage();
 
-  // Initialize with a single shared welcome message on first mount
+  // A7: Initialize shared welcome message in the active language
   useEffect(() => {
     if (sharedMessages.length === 0) {
       setSharedMessages([{
         id: 'welcome-shared',
         sender: 'bot',
         persona: personaId,
-        text: `Hello! I'm your Mausam Weather Assistant. Ask me anything about weather, and I'll tailor advice to your active persona.`,
-        time: 'Just now',
+        text: t('chat.greeting'),
+        time: lang === 'hi' ? 'अभी' : 'Just now',
       }]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,7 +145,7 @@ export default function ChatbotSection({
     };
 
     try {
-      const reply = await sendChatMessage(query, history, personaId, enrichedCtx);
+      const reply = await sendChatMessage(query, history, personaId, enrichedCtx, lang);
       setSharedMessages((prev) => [...prev, {
         id:     `bot-${Date.now()}`,
         sender: 'bot',
@@ -165,7 +167,7 @@ export default function ChatbotSection({
 
   return (
     <div className="w-full bg-white rounded-[2rem] p-4 sm:p-5 shadow-md border border-slate-200/90 my-5 flex flex-col shrink-0 relative">
-      {/* Header — persona-specific title */}
+      {/* Header — persona-specific title (A7 translated) */}
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
@@ -173,11 +175,11 @@ export default function ChatbotSection({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-800 leading-tight">
-              Ask your {persona.name} Assistant
+              {tp('chat.heading', { persona: t(`persona.${personaId}`, persona.name) })}
             </h3>
             <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Shared history • Tailored advice per persona
+              {t('chat.subheading')}
             </span>
           </div>
         </div>
@@ -187,22 +189,27 @@ export default function ChatbotSection({
         </div>
       </div>
 
-      {/* Persona-specific suggested question chips */}
+      {/* Persona-specific suggested question chips (A7 translated) */}
       <div className="mb-3 shrink-0">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-          Suggested Questions
+          {t('chat.suggested')}
         </span>
         <div className="flex flex-wrap gap-1.5">
-          {persona.quickQuestions.map((q, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSend(q)}
-              className="text-xs font-semibold bg-slate-100/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 px-3 py-1.5 rounded-full border border-slate-200/80 transition-all text-left shadow-2xs"
-            >
-              {q}
-            </button>
-          ))}
+          {/* A7: show translated questions if available, else fall back to persona.quickQuestions */}
+          {[1,2,3,4].map((idx) => {
+            const key = `q.${personaId}.${idx}`;
+            const q = t(key, persona.quickQuestions[idx - 1]);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSend(q)}
+                className="text-xs font-semibold bg-slate-100/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 px-3 py-1.5 rounded-full border border-slate-200/80 transition-all text-left shadow-2xs"
+              >
+                {q}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -272,7 +279,7 @@ export default function ChatbotSection({
             className="flex items-center gap-2 text-xs font-semibold text-slate-400 pl-2"
           >
             <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-            <span>Mausam AI is thinking…</span>
+            <span>{t('chat.thinking')}</span>
           </motion.div>
         )}
       </div>
@@ -280,7 +287,7 @@ export default function ChatbotSection({
       {/* Input bar */}
       <div className="w-full pt-3 mt-3 border-t border-slate-200 flex flex-col gap-1.5 shrink-0 bg-white">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
-          Type your question
+          {t('chat.placeholder')}
         </span>
         <form
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
@@ -310,7 +317,7 @@ export default function ChatbotSection({
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); handleSend(); }
             }}
-            placeholder="Ask about today's weather…"
+            placeholder={t('chat.placeholder')}
             className="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 h-11 sm:h-12 min-h-[44px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-semibold focus:ring-0"
           />
 

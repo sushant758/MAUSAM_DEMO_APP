@@ -1,9 +1,10 @@
 // ─── A7: Language context ─────────────────────────────────────────────────────
-// Provides { lang, setLang, t } to the entire component tree.
+// Provides { lang, setLang, t, tp } to the entire component tree.
 //
 //   lang      'en' | 'hi'
 //   setLang   (lang) => void  — persists to localStorage
 //   t         (key, fallback?) => string — translates a key
+//   tp        (key, vars, fallback?) => string — translates then fills {placeholders}
 //
 // Wraps the app at the root level (<LanguageProvider> in App.jsx).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ const LanguageContext = createContext({
   lang:    'en',
   setLang: () => {},
   t:       (key, fb) => fb ?? key,
+  tp:      (key, _vars, fb) => fb ?? key,
 });
 
 export function LanguageProvider({ children }) {
@@ -37,8 +39,17 @@ export function LanguageProvider({ children }) {
     [lang],
   );
 
+  // tp(key, vars, fallback?) → translate then substitute {placeholder} vars
+  const tp = useCallback(
+    (key, vars = {}, fallback) => {
+      const raw = STRINGS[lang]?.[key] ?? STRINGS.en?.[key] ?? fallback ?? key;
+      return raw.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+    },
+    [lang],
+  );
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, tp }}>
       {children}
     </LanguageContext.Provider>
   );

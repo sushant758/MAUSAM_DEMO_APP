@@ -12,6 +12,7 @@ import WhySheet from './WhySheet';
 import ChatbotSection from './ChatbotSection';
 import LocationModal from './LocationModal';
 import SettingsSheet from './SettingsSheet';
+import { useLanguage } from '../i18n/LanguageContext';
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const LS_UNIT = 'mausam.tempUnit';
@@ -70,6 +71,8 @@ export default function HomeScreen({
   // F6: auto-switch banner
   const [autoBannerVisible, setAutoBannerVisible] = useState(false);
   const [autoBannerText, setAutoBannerText] = useState('');
+
+  const { t } = useLanguage();
   const prevPersonaIndexRef = useRef(null);
   const bannerTimerRef = useRef(null);
 
@@ -306,7 +309,7 @@ export default function HomeScreen({
               className="mx-1 mb-1 px-3 py-2 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2 text-red-700 text-[11px] font-bold"
             >
               <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
-              Active weather alert · Cards with ⚠️ are pinned at top
+              {t('banner.warning')}
             </motion.div>
           )}
         </AnimatePresence>

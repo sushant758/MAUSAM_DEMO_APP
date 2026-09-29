@@ -24,6 +24,7 @@ import {
 import CircularGauge from './CircularGauge';
 import SourceChip from './SourceChip';
 import { useLanguage } from '../i18n/LanguageContext';
+import { getTranslatedCardBody, getTranslatedStatusText } from '../i18n/cardI18n';
 
 const BADGE_ICONS = {
   Smile,
@@ -59,14 +60,16 @@ const BADGE_ICONS = {
  */
 export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, onWhyClick }) {
   const IconComp = BADGE_ICONS[card.badgeIcon] || Sparkles;
-  const { t } = useLanguage();
-  // A7: translate card title; fall back to static card.title
+  const { lang, t } = useLanguage();
+  // A7: translated card title
   const cardTitle = t(`card.${card.id}`, card.title);
+  // A7: translated body + statusText (render-time, no catalog changes)
+  const translatedSubtext     = getTranslatedCardBody(card, lang, t);
+  const translatedStatusText  = getTranslatedStatusText(card, lang, t);
 
   // Values come pre-computed from the A2 ranker (catalog.compute())
-  // liveOverride is no longer needed — catalog returns final values directly
-  const subtext     = card.subtext;
-  const statusText  = card.statusText;
+  const subtext     = translatedSubtext;
+  const statusText  = translatedStatusText;
   const gaugeValue  = card.gaugeValue;
   const statusColor = card.statusColor;
 

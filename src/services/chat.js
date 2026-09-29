@@ -1,16 +1,17 @@
 // ─── src/services/chat.js ─────────────────────────────────────────────────────
-// A6: Shared AI chat service.
+// A6 + A7: Shared AI chat service with language support.
 //
 // Tries POST /api/chat (serverless, LLM on server).
 // Falls back to ruleBasedReply() if /api/chat returns 503, 404, or network error.
 // NO API keys ever enter this file or any other frontend file.
+// A7: Accepts lang='en'|'hi' and replies in the active language.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Rule-based fallback engine ────────────────────────────────────────────────
 // Covers the most common weather queries without any LLM.
-// Returns a string reply.
+// Returns a string reply in the requested language.
 
-const RULES = [
+const RULES_EN = [
   // Rain
   { re: /\brain\b|umbrella|wet|drizzle|shower/i,
     reply: (ctx) => ctx.rain >= 70
@@ -88,7 +89,7 @@ const RULES = [
   { re: /\bbeach|swim|surf|wave|sea|ocean|coastal/i,
     reply: (ctx) => `Beach conditions: UV is ${ctx.uv} (${ctx.uv >= 8 ? 'Very High — apply heavy SPF' : ctx.uv >= 6 ? 'High — use SPF 30+' : 'moderate'}), wind at ${ctx.wind} km/h. ${ctx.rain >= 50 ? 'Rain expected — check local advisories before heading out.' : 'Looks good for a beach visit — check local tide timings.'}` },
 
-  // General greeting / what can you do
+  // Greeting
   { re: /^(hi|hello|hey|namaste|helo|good morning|good evening)/i,
     reply: (ctx) => `Hello! I'm your Mausam Weather Assistant for ${ctx.location}. Ask me about rain, AQI, UV, heat, travel safety, farming, or anything weather-related!` },
 
@@ -97,15 +98,98 @@ const RULES = [
     reply: () => `I can answer questions about: 🌧️ Rain probability, 🌡️ Temperature & heat index, 💨 AQI & air quality, ☀️ UV Index, 🌾 Farming advice, 🚗 Travel & visibility, 🏖️ Beach conditions, and 🎉 Outdoor event safety. Just ask!` },
 ];
 
+const RULES_HI = [
+  { re: /\bबारिश|छाता|वर्षा|बरसात|rain\b|umbrella/i,
+    reply: (ctx) => ctx.rain >= 70
+      ? `हाँ, आज बारिश की बहुत अधिक संभावना है (${ctx.rain}%)। छाता साथ रखें और यात्रा में अतिरिक्त समय रखें।`
+      : ctx.rain >= 40
+      ? `बारिश की मध्यम संभावना है (${ctx.rain}%)। छाता पास रखें।`
+      : `आज बारिश की संभावना कम है (${ctx.rain}%)। मौसम शुष्क रहेगा!` },
+
+  { re: /\bगर्मी|तापमान|ठंडा|hot\b|heat\b|temp\b|warm\b|cool\b|cold\b/i,
+    reply: (ctx) => {
+      const disp = `${ctx.tempC}°C`;
+      if (ctx.tempC >= 38) return `${ctx.location} में बहुत गर्मी है (${disp})। दोपहर 12–4 बजे बाहर न जाएँ, पानी पिएँ और सनस्क्रीन लगाएँ।`;
+      if (ctx.tempC >= 30) return `${ctx.location} में ${disp} तापमान है। छाँव में रहें और पानी पीते रहें।`;
+      if (ctx.tempC <= 12) return `${ctx.location} में ठंड है (${disp})। बाहर जाते समय गर्म कपड़े पहनें।`;
+      return `${ctx.location} में तापमान ${disp} है — आरामदायक मौसम।`;
+    }},
+
+  { re: /\bAQI|वायु|प्रदूषण|air quality/i,
+    reply: (ctx) => ctx.aqi >= 200
+      ? `⚠️ ${ctx.location} में AQI ${ctx.aqi} है (बहुत अस्वास्थ्यकर)। बाहर व्यायाम न करें। N95 मास्क लगाएँ। खिड़कियाँ बंद रखें।`
+      : ctx.aqi >= 150
+      ? `AQI ${ctx.aqi} है (अस्वास्थ्यकर)। संवेदनशील लोग घर के अंदर रहें।`
+      : `AQI ${ctx.aqi} है (${ctx.aqi <= 50 ? 'अच्छा' : 'मध्यम'})। अधिकांश बाहरी गतिविधियों के लिए ठीक है।` },
+
+  { re: /\bUV|सनस्क्रीन|सूरज/i,
+    reply: (ctx) => ctx.uv >= 8
+      ? `UV Index ${ctx.uv} है (बहुत उच्च)। हर 2 घंटे में SPF 50+ सनस्क्रीन लगाएँ, टोपी पहनें और सुबह 11 से 3 बजे तक छाँव में रहें।`
+      : ctx.uv >= 6
+      ? `UV Index ${ctx.uv} है (उच्च)। SPF 30+ सनस्क्रीन लगाएँ।`
+      : `UV Index ${ctx.uv} है (${ctx.uv <= 2 ? 'कम' : 'मध्यम'})। सामान्य सावधानी पर्याप्त है।` },
+
+  { re: /\bहवा|पवन|wind\b|storm\b/i,
+    reply: (ctx) => ctx.wind > 50
+      ? `हवा तेज़ है — ${ctx.wind} km/h। बाहर जाने से बचें, हल्की वस्तुओं को सुरक्षित करें।`
+      : ctx.wind > 25
+      ? `आज हल्की तेज़ हवा है (${ctx.wind} km/h)। मौसम की खबर पर ध्यान रखें।`
+      : `हवा शांत है (${ctx.wind} km/h)। कोई समस्या नहीं।` },
+
+  { re: /\bआर्द्रता|उमस|feels like|humid/i,
+    reply: (ctx) => ctx.hi >= 41
+      ? `ताप सूचकांक ${ctx.hi.toFixed(0)}°C है — खतरनाक गर्मी। बाहरी गतिविधि कम करें।`
+      : `उमस के साथ ${ctx.hi.toFixed(0)}°C जैसा लग रहा है। पानी पीते रहें।` },
+
+  { re: /\bफसल|खेत|सिंचाई|मिट्टी|किसान|farm\b|crop\b|soil\b/i,
+    reply: (ctx) => `खेती की सलाह: तापमान ${ctx.tempC}°C, वर्षा संभावना ${ctx.rain}%। ${ctx.rain >= 60 ? 'बारिश की उम्मीद है — सिंचाई रोकें। कीटनाशक न छिड़कें।' : ctx.wind > 20 ? 'हवा तेज़ है — छिड़काव न करें। मिट्टी की नमी जाँचें।' : 'खेत के काम के लिए अच्छी स्थिति। सुबह 6–9 बजे सबसे अच्छा समय।'}` },
+
+  { re: /\bयात्रा|सड़क|ड्राइव|कोहरा|दृश्यता|travel\b|drive\b|fog\b/i,
+    reply: (ctx) => ctx.vis < 500
+      ? `⚠️ दृश्यता बहुत कम है (${ctx.vis}m)। कोहरे में गाड़ी न चलाएँ।`
+      : ctx.rain >= 60
+      ? `भारी बारिश की संभावना है (${ctx.rain}%)। यात्रा में अतिरिक्त समय रखें।`
+      : `यात्रा की स्थिति ठीक है — तापमान ${ctx.tempC}°C, ${ctx.rain}% बारिश संभावना।` },
+
+  { re: /\bआयोजन|पार्टी|समारोह|शाम|event\b|party\b|outdoor\b/i,
+    reply: (ctx) => ctx.rain >= 50
+      ? `बारिश की संभावना है (${ctx.rain}%)। बाहरी आयोजन के लिए इनडोर विकल्प तैयार रखें।`
+      : `बाहरी आयोजन के लिए अच्छी स्थिति — ${ctx.tempC}°C, ${ctx.rain}% बारिश संभावना।` },
+
+  { re: /\bसमुद्र|बीच|तैराकी|लहर|beach\b|swim\b|wave\b/i,
+    reply: (ctx) => `समुद्र तट: UV ${ctx.uv}, हवा ${ctx.wind} km/h। ${ctx.rain >= 50 ? 'बारिश की उम्मीद है — स्थानीय सलाह जाँचें।' : 'समुद्र तट जाने के लिए अच्छा दिन है।'}` },
+
+  { re: /^(नमस्ते|हैलो|hi\b|hello\b|hey\b)/i,
+    reply: (ctx) => `नमस्ते! मैं ${ctx.location} के लिए आपका Mausam मौसम सहायक हूँ। बारिश, AQI, UV, गर्मी या यात्रा सुरक्षा के बारे में कुछ भी पूछें!` },
+
+  { re: /\bसहायता|मदद|help\b/i,
+    reply: () => `मैं इन विषयों पर सहायता कर सकता हूँ: 🌧️ वर्षा संभावना, 🌡️ तापमान, 💨 AQI, ☀️ UV Index, 🌾 खेती, 🚗 यात्रा, 🏖️ समुद्र तट, 🎉 आयोजन।` },
+];
+
 /** Pure rule-based reply — always works, no network needed. */
-function ruleBasedReply(query, ctx) {
-  for (const rule of RULES) {
-    if (rule.re.test(query)) {
-      return rule.reply(ctx);
+function ruleBasedReply(query, ctx, lang) {
+  const rules = lang === 'hi' ? RULES_HI : RULES_EN;
+
+  // Try language-specific rules first
+  for (const rule of rules) {
+    if (rule.re.test(query)) return rule.reply(ctx);
+  }
+
+  // If HI and no HI rule matched, try EN rules (most queries will be typed in EN)
+  if (lang === 'hi') {
+    for (const rule of RULES_EN) {
+      if (rule.re.test(query)) {
+        // We got an EN match — still reply in Hindi with generic template
+        const en = rule.reply(ctx);
+        if (en) return en; // The EN reply is still intelligible; user typed EN
+      }
     }
   }
-  // Default fallback
-  return `I'm your Mausam assistant for ${ctx.location}. Currently ${ctx.tempC}°C with ${ctx.rain}% rain probability. Ask me about rain, AQI, UV, travel safety, or farming advice!`;
+
+  // Default fallback in active language
+  return lang === 'hi'
+    ? `मैं ${ctx.location} के लिए आपका Mausam सहायक हूँ। अभी ${ctx.tempC}°C है, ${ctx.rain}% वर्षा संभावना। बारिश, AQI, UV, यात्रा या खेती के बारे में पूछें!`
+    : `I'm your Mausam assistant for ${ctx.location}. Currently ${ctx.tempC}°C with ${ctx.rain}% rain probability. Ask me about rain, AQI, UV, travel safety, or farming advice!`;
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -117,10 +201,11 @@ function ruleBasedReply(query, ctx) {
  * @param {string}   query       — The user's message text
  * @param {Array}    history     — [{role:'user'|'assistant', content:string}, ...]
  * @param {string}   personaId   — Active persona id
- * @param {object}   ctx         — Weather context (tempC, rain, aqi, uv, wind, hi, vis, location, tempUnit)
+ * @param {object}   ctx         — Weather context
+ * @param {string}   lang        — 'en' | 'hi' (A7: reply in this language)
  * @returns {Promise<string>}    — Bot reply text
  */
-export async function sendChatMessage(query, history, personaId, ctx) {
+export async function sendChatMessage(query, history, personaId, ctx, lang = 'en') {
   // Normalise ctx with safe defaults
   const safeCtx = {
     tempC:    ctx?.weather?.temp       ?? 25,
@@ -152,8 +237,9 @@ export async function sendChatMessage(query, history, personaId, ctx) {
         personaId,
         locationName:   safeCtx.location,
         weatherSummary,
+        lang,            // A7: tell the server to reply in this language
       }),
-      signal: AbortSignal.timeout(8000),   // 8 s timeout
+      signal: AbortSignal.timeout(8000),
     });
 
     if (resp.ok) {
@@ -165,6 +251,6 @@ export async function sendChatMessage(query, history, personaId, ctx) {
     // Network error, timeout, CORS on gh-pages → rule-based
   }
 
-  // ── Rule-based fallback ──────────────────────────────────────────────────
-  return ruleBasedReply(query, safeCtx);
+  // ── Rule-based fallback in active language ────────────────────────────────
+  return ruleBasedReply(query, safeCtx, lang);
 }

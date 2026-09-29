@@ -6,7 +6,8 @@
 //   { messages: [{role:'user'|'assistant', content: string}],
 //     personaId: string,
 //     locationName: string,
-//     weatherSummary: string }
+//     weatherSummary: string,
+//     lang: 'en' | 'hi'  — A7: reply language }
 //
 // Response:
 //   { reply: string }
@@ -22,11 +23,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { messages = [], personaId = 'health', locationName = '', weatherSummary = '' } = req.body ?? {};
+  const {
+    messages = [],
+    personaId = 'health',
+    locationName = '',
+    weatherSummary = '',
+    lang = 'en',  // A7: 'en' | 'hi'
+  } = req.body ?? {};
 
-  // ── Build system prompt ────────────────────────────────────────────────────
+  // ── Build system prompt (A7: language-aware) ──────────────────────────────
+  const langInstruction = lang === 'hi'
+    ? 'IMPORTANT: Reply in natural, simple Hindi (Devanagari script). Keep these terms in English: AQI, PM2.5, PM10, UV, UV Index, IMD, US EPA, Open-Meteo, °C, °F, µg/m³, city names, Mausam. Numbers stay as digits.'
+    : 'Reply in English.';
+
   const systemPrompt = [
     `You are Mausam, an expert Indian weather assistant. Answer concisely (2-4 sentences).`,
+    langInstruction,
     `Active persona: ${personaId}.`,
     `Location: ${locationName || 'unknown'}.`,
     weatherSummary ? `Current conditions: ${weatherSummary}.` : '',
