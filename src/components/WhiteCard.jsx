@@ -56,35 +56,37 @@ const BADGE_ICONS = {
  *   liveOverride {object}  — optional { subtext, statusText, gaugeValue, statusColor }
  *                            computed from real ctx values; overrides static card data
  */
-export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, liveOverride }) {
+export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, onWhyClick }) {
   const IconComp = BADGE_ICONS[card.badgeIcon] || Sparkles;
 
-  // Merge live override (computed from ctx) with static card data
-  const subtext     = liveOverride?.subtext     ?? card.subtext;
-  const statusText  = liveOverride?.statusText  ?? card.statusText;
-  const gaugeValue  = liveOverride?.gaugeValue  ?? card.gaugeValue;
-  const statusColor = liveOverride?.statusColor ?? card.statusColor;
+  // Values come pre-computed from the A2 ranker (catalog.compute())
+  // liveOverride is no longer needed — catalog returns final values directly
+  const subtext     = card.subtext;
+  const statusText  = card.statusText;
+  const gaugeValue  = card.gaugeValue;
+  const statusColor = card.statusColor;
 
-  // ── SourceChip logic ────────────────────────────────────────────────────
-  // A card is "intentionally always-mock" when its tag explicitly starts with
-  // "Mock data" AND there is no liveOverride (e.g. tide times, traffic, IMD).
-  // Any card that gets a liveOverride from HomeScreen computed real data → green.
-  const isAlwaysMock = card.tag?.toLowerCase().startsWith('mock') && !liveOverride;
+  // ── SourceChip logic ────────────────────────────────────────────────────────
+  // "Mock data" prefix in card.tag → always-mock card (tide, traffic, pollen, etc.)
+  // "Formula:" prefix → formula-based card (green if live ctx was used)
+  // Anything else → live Open-Meteo field
+  const isAlwaysMock = card.tag?.toLowerCase().startsWith('mock');
   const isFormula    = card.tag?.startsWith('Formula:');
-  const showLiveChip = isLive && !!liveOverride && !isAlwaysMock;
+  // Show green chip when: API is live AND this card is not intentionally always-mock
+  const showLiveChip = isLive && !isAlwaysMock;
 
-  // Provider: first segment of tag before " • " (e.g. "Open-Meteo Marine API")
-  // Falls back to "Open-Meteo" when tag is a formula or missing.
+  // Provider: first segment before " • " (e.g. "Open-Meteo Marine API", "Open-Meteo")
   const chipProvider = (!isAlwaysMock && !isFormula && card.tag)
     ? card.tag.split(' • ')[0].trim()
     : 'Open-Meteo';
 
-  // Note shown under the chip (formula text or mock explanation, never "Production: ...")
+  // Note under the chip
   const chipNote = isFormula
     ? card.tag.replace(/^Formula:\s*/, '').trim()
     : isAlwaysMock
     ? card.tag.replace(/^Mock data •?\s*/i, '').trim() || undefined
     : undefined;
+
 
   return (
     <motion.div
@@ -150,6 +152,7 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
 
         {/* Why this card? — 44×44 tap target (A5 sheet trigger) */}
         <button
+          onClick={onWhyClick}
           aria-label="Why this card?"
           className="h-11 w-11 -mr-2 grid place-items-center text-slate-400 hover:text-amber-500 transition-colors"
         >
