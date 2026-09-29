@@ -72,8 +72,13 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // A5: WhySheet state
-  const [whyCard, setWhyCard] = useState(null);   // the ranked card object to explain
+  // A5: WhySheet state + card votes (no backend — stored in React state)
+  const [whyCard, setWhyCard] = useState(null);
+  const [cardVotes, setCardVotes] = useState({});
+
+  const handleVote = useCallback((cardId, vote) => {
+    setCardVotes((prev) => ({ ...prev, [cardId]: vote }));
+  }, []);
 
   // F9: shared chat
   const [sharedMessages, setSharedMessages] = useState([]);
@@ -363,13 +368,14 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
         />
       </main>
 
-      {/* A5: WhySheet */}
       <WhySheet
         isOpen={!!whyCard}
         onClose={handleWhyClose}
         card={whyCard}
         personaId={activePersona.id}
         ctx={weatherCtx}
+        votes={cardVotes}
+        onVote={handleVote}
       />
 
       <LocationModal

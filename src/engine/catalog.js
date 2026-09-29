@@ -5,8 +5,9 @@
 //   - Live compute     compute(ctx) → { visible, urgency 0-1, …display fields }
 //   - A5 explainability whyText(ctx, personaId), formulaText, dataFields
 //
-// Cards with urgency ≥ 0.75 are treated as warnings and pinned at top (IMD gate).
-// Card ordering within a persona: score = urgency×0.6 + affinity×0.4 (descending).
+// Safety Gate: cards can only become pinned warnings when ctx.isLive=true AND
+//   urgency ≥ 0.75 AND tag does NOT start with "Mock data".
+// Ranking formula: score = affinity × (0.5 + 0.5 × urgency) × learnedWeight
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -289,41 +290,86 @@ export const CARD_CATALOG = [
     dataFields: ['precipitation_probability (hourly, %)'],
   },
 
+  // ── storm_forecast: REAL Open-Meteo data, pinnable warning ────────────────
+  // This card ONLY appears when live hourly data contains WMO codes 95-99.
+  // When present, ranker.isWarning will be true → pinned at top.
+  // The imd_warnings card below is always shown separately as mock.
   {
-    id: 'storm_risk',
-    title: 'Storm & Severe Weather',
-    badgeIcon: 'ShieldCheck',
-    badgeColor: 'bg-emerald-100 text-emerald-600 border-emerald-200',
+    id: 'storm_forecast',
+    title: 'Thunderstorm Forecast',
+    badgeIcon: 'ShieldAlert',
+    badgeColor: 'bg-red-100 text-red-600 border-red-200',
     affinity: {
-      health: 0.6, fitness: 0.5, parent: 0.75, commuter: 0.8,
-      beachgoer: 0.7, traveller: 0.6, farmer: 0.6, eventplanner: 0.9,
+      health: 0.9, fitness: 0.9, parent: 0.95, commuter: 0.95,
+      beachgoer: 0.9, traveller: 0.85, farmer: 0.9, eventplanner: 0.95,
     },
     compute(ctx) {
       const hourly = ctx?.hourly ?? [];
-      const hasStorm = hourly.some((h) => isThunderstorm(h.weatherCode));
-      const urgency = hasStorm ? 0.9 : 0.05;
+      const isLive = ctx?.isLive ?? false;
+      const stormHours = hourly.filter((h) => isThunderstorm(h.weatherCode));
+      const hasStorm = stormHours.length > 0;
+
+      // Only visible when live data actually detects storm codes
+      // If data is mock/fallback, hide this card — imd_warnings covers the "no alert" state
+      if (!hasStorm || !isLive) {
+        return { visible: false, urgency: 0 };
+      }
+
+      const hours = stormHours.map((h) => h.hour).sort((a, b) => a - b);
+      const fmt = (h) => `${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? 'AM' : 'PM'}`;
+      const window = hours.length >= 2
+        ? `${fmt(hours[0])} – ${fmt(hours[hours.length - 1])}`
+        : fmt(hours[0]);
+
       return {
         visible: true,
-        urgency,
-        type: 'check',
-        statusText: hasStorm ? '⚠️ Storm Forecast' : 'No Storm Risk',
-        statusColor: hasStorm
-          ? 'bg-red-50 text-red-700 border-red-200'
-          : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        subtext: hasStorm
-          ? '⚠️ Thunderstorm (WMO code 95–99) forecast today. Avoid outdoor exposure during storm windows. Postpone outdoor events if possible.'
-          : 'No thunderstorm (WMO codes 95–99) detected in today\'s forecast. No active severe weather alert.',
-        tag: 'Mock data • IMD warning feed planned',
+        urgency: 0.9,
+        type: 'status',
+        statusText: '⚠️ Storm in Today\'s Forecast',
+        statusColor: 'bg-red-50 text-red-700 border-red-200',
+        subtext: `Thunderstorm detected in today's forecast (Open-Meteo hourly, window: ${window}).\nThis is a forecast — actual timing may vary. Check imd.gov.in for official severe weather alerts.`,
+        tag: 'Open-Meteo • hourly weather_code (WMO 95–99)',
       };
     },
     whyText: (ctx) => {
-      const hasStorm = (ctx?.hourly ?? []).some((h) => isThunderstorm(h.weatherCode));
-      return hasStorm
-        ? '⚠️ Thunderstorm detected in today\'s weather codes (95–99). This is the highest urgency weather event and is pinned at top.'
-        : 'No thunderstorm codes (95–99) detected. Storm check always runs for safety.';
+      const stormHours = (ctx?.hourly ?? []).filter((h) => isThunderstorm(h.weatherCode));
+      return `Thunderstorm (WMO weather codes 95–99) detected in today's Open-Meteo forecast for ${stormHours.length} hour(s). This card uses real live API data and is pinned at top by the IMD Safety Gate. imd.gov.in should be checked for official warnings.`;
     },
-    formulaText: 'WMO weather code check: thunderstorm when code ∈ {95, 96, 99}. Source: Open-Meteo hourly weather_code. IMD warning feed not yet integrated — this is weather-code based only.',
-    dataFields: ['weather_code (hourly, WMO 4677)'],
+    formulaText: 'Thunderstorm when weather_code ∈ {95, 96, 99} (WMO 4677). Source: Open-Meteo hourly forecast. This card is ONLY shown when ctx.isLive = true and storm codes are present.',
+    dataFields: ['weather_code (hourly, WMO 4677)', 'isLive flag (must be true)'],
+  },
+
+  // ── imd_warnings: ALWAYS MOCK, NEVER pinned ────────────────────────────────
+  // Represents the IMD official warning feed that is not yet integrated.
+  // urgency is always 0.05 → never reaches WARNING_THRESHOLD → never pinned.
+  // tag starts with "Mock data" → ranker safety gate blocks pinning even if urgency were high.
+  {
+    id: 'imd_warnings',
+    title: 'Severe Weather Alerts',
+    badgeIcon: 'ShieldCheck',
+    badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
+    affinity: {
+      health: 0.5, fitness: 0.4, parent: 0.7, commuter: 0.75,
+      beachgoer: 0.6, traveller: 0.5, farmer: 0.55, eventplanner: 0.8,
+    },
+    compute(ctx) {
+      const hasCodeStorm = (ctx?.hourly ?? []).some((h) => isThunderstorm(h.weatherCode));
+      return {
+        visible: true,
+        urgency: 0.05, // ALWAYS low — this card is mock, NEVER a warning
+        type: 'check',
+        statusText: 'No IMD Alert',
+        statusColor: 'bg-slate-50 text-slate-500 border-slate-200',
+        subtext: hasCodeStorm
+          ? 'Weather codes indicate possible storm activity. IMD official feed not integrated in this prototype — check imd.gov.in for active alerts.'
+          : 'No active IMD severe weather alert. IMD official feed is not yet integrated in this prototype.',
+        tag: 'Mock data • IMD warning feed planned',
+      };
+    },
+    whyText: () =>
+      'IMD (India Meteorological Department) official warnings are not yet integrated. This card is a placeholder. In production, this would show real IMD district-level alerts. It is never pinned because the data is mock.',
+    formulaText: 'No formula — this card shows the status of IMD official warning integration. Currently: not integrated. Production target: IMD datastore API (district-level, colour-coded alerts).',
+    dataFields: ['IMD warning feed — not yet integrated'],
   },
 
   {
