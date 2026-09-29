@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PERSONAS, MOCK_LOCATIONS } from '../data/personaData';
 import Header from './Header';
@@ -8,15 +8,46 @@ import ChatbotSection from './ChatbotSection';
 import LocationModal from './LocationModal';
 import UserProfileModal from './UserProfileModal';
 
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+const LS_UNIT = 'mausam.tempUnit';
+const LS_AUTO = 'mausam.autoPersona';
+
+function readLS(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function writeLS(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
 export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhoneFrame }) {
   const [currentPersonaIndex, setCurrentPersonaIndex] = useState(0);
-  const [tempUnit, setTempUnit] = useState('C'); // 'C' or 'F'
-  const [autoSwitchedMode, setAutoSwitchedMode] = useState(true);
+
+  // F3: persist °C/°F in localStorage
+  const [tempUnit, setTempUnit] = useState(() => readLS(LS_UNIT, 'C'));
+
+  // F3: auto-persona toggle — also persist
+  const [autoSwitchedMode, setAutoSwitchedMode] = useState(() => readLS(LS_AUTO, true));
+
   const [currentLocation, setCurrentLocation] = useState(MOCK_LOCATIONS[0]);
-  
+
+  // F6: dismissible auto-switch banner state
+  const [autoBannerVisible, setAutoBannerVisible] = useState(false);
+  const [autoBannerText, setAutoBannerText] = useState('');
+  const prevPersonaIndexRef = useRef(null); // for Undo
+  const bannerTimerRef = useRef(null);
+
+  // F8: selectedPersonas — default = first persona; stored as set of ids
+  const [selectedPersonas, setSelectedPersonas] = useState(() => [PERSONAS[0].id]);
+
   // Modals
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // F9: ONE shared chat store — lifted here so it survives persona swipes
+  // shape: { messages: [], draftInputMap: {personaId: string} }
+  const [sharedMessages, setSharedMessages] = useState([]);
+  const [sharedDraftMap, setSharedDraftMap] = useState({});
 
   const scrollContainerRef = useRef(null);
   const tabRowRef = useRef(null);
@@ -24,65 +55,103 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
 
   const activePersona = PERSONAS[currentPersonaIndex];
 
-  // Forcible Scroll-to-Top Helper for main page
-  const forceScrollToTop = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-    }
+  // ─── Persist F3 settings ───────────────────────────────────────────────────
+  useEffect(() => { writeLS(LS_UNIT, tempUnit); }, [tempUnit]);
+  useEffect(() => { writeLS(LS_AUTO, autoSwitchedMode); }, [autoSwitchedMode]);
+
+  // ─── Scroll helpers ────────────────────────────────────────────────────────
+  const forceScrollToTop = useCallback(() => {
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  };
+  }, []);
 
-  // Helper to change persona and immediately force scroll reset to top
-  const changePersonaAndResetScroll = (getNewIndex) => {
+  // ─── Core persona change function — used by swipe, tab tap, auto, demo ───
+  // source: 'swipe' | 'tab' | 'auto' | 'demo'
+  const goToPersona = useCallback((getNewIndex, source = 'tab') => {
     setCurrentPersonaIndex((prevIndex) => {
       const nextIndex = typeof getNewIndex === 'function' ? getNewIndex(prevIndex) : getNewIndex;
+
+      // F6: show banner only when auto-switching
+      if (source === 'auto' && nextIndex !== prevIndex) {
+        prevPersonaIndexRef.current = prevIndex;
+        const nextPersona = PERSONAS[nextIndex];
+        const prevPersona = PERSONAS[prevIndex];
+        const reason = `Switched to ${nextPersona.name.split(' ')[0]} mode • Based on time of day & conditions`;
+        setAutoBannerText(reason);
+        setAutoBannerVisible(true);
+
+        // Auto-hide after 6 s
+        clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = setTimeout(() => setAutoBannerVisible(false), 6000);
+      }
+
+      // F8: if user manually swipes, turn Auto OFF
+      if (source === 'swipe') {
+        setAutoSwitchedMode(false);
+        writeLS(LS_AUTO, false);
+      }
+
       return nextIndex;
     });
 
-    // Immediate & frame-delayed scroll reset
+    // Scroll reset only on persona change (never on chat, sheet, reorder)
     forceScrollToTop();
     requestAnimationFrame(() => {
       forceScrollToTop();
       setTimeout(forceScrollToTop, 0);
       setTimeout(forceScrollToTop, 30);
     });
-  };
+  }, [forceScrollToTop]);
 
-  // Handlers for Hero Card swipe gestures & persona tab clicks
-  const handleNextPersona = () => {
-    changePersonaAndResetScroll((prev) => (prev + 1) % PERSONAS.length);
-  };
+  // Swipe handlers
+  const handleNextPersona = useCallback(() => {
+    goToPersona((prev) => (prev + 1) % PERSONAS.length, 'swipe');
+  }, [goToPersona]);
 
-  const handlePrevPersona = () => {
-    changePersonaAndResetScroll((prev) => (prev - 1 + PERSONAS.length) % PERSONAS.length);
-  };
+  const handlePrevPersona = useCallback(() => {
+    goToPersona((prev) => (prev - 1 + PERSONAS.length) % PERSONAS.length, 'swipe');
+  }, [goToPersona]);
 
-  const handleSelectPersona = (index) => {
-    changePersonaAndResetScroll(index);
-  };
+  const handleSelectPersona = useCallback((index) => {
+    goToPersona(index, 'tab');
+  }, [goToPersona]);
 
-  // LayoutEffect to enforce top scroll on persona index mutation
+  // ─── LayoutEffect: enforce scroll reset on persona index mutation ──────────
   useLayoutEffect(() => {
     forceScrollToTop();
-    const animationFrameId = requestAnimationFrame(() => {
-      forceScrollToTop();
-    });
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [currentPersonaIndex]);
+    const id = requestAnimationFrame(() => forceScrollToTop());
+    return () => cancelAnimationFrame(id);
+  }, [currentPersonaIndex, forceScrollToTop]);
 
-  // BUG 2 FIX: Synchronize horizontal scrolling of Persona Tab Row on persona change
+  // ─── Sync tab row horizontal scroll on persona change ─────────────────────
   useEffect(() => {
-    const activeTabElement = tabRefs.current[currentPersonaIndex];
-    if (activeTabElement && tabRowRef.current) {
-      activeTabElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
+    const el = tabRefs.current[currentPersonaIndex];
+    if (el && tabRowRef.current) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }, [currentPersonaIndex]);
+
+  // ─── F6: Banner handlers ───────────────────────────────────────────────────
+  const handleDismissBanner = useCallback(() => {
+    setAutoBannerVisible(false);
+    clearTimeout(bannerTimerRef.current);
+  }, []);
+
+  const handleUndoBanner = useCallback(() => {
+    setAutoBannerVisible(false);
+    clearTimeout(bannerTimerRef.current);
+    setAutoSwitchedMode(false);
+    writeLS(LS_AUTO, false);
+    if (prevPersonaIndexRef.current !== null) {
+      goToPersona(prevPersonaIndexRef.current, 'tab');
+      prevPersonaIndexRef.current = null;
+    }
+  }, [goToPersona]);
+
+  // Cleanup banner timer on unmount
+  useEffect(() => () => clearTimeout(bannerTimerRef.current), []);
 
   return (
     <div 
@@ -102,17 +171,24 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
         onOpenProfile={() => setIsProfileModalOpen(true)}
         isPhoneFrame={isPhoneFrame}
         onTogglePhoneFrame={onTogglePhoneFrame}
+        // F6 banner props
+        autoBannerVisible={autoBannerVisible}
+        autoBannerText={autoBannerText}
+        onDismissBanner={handleDismissBanner}
+        onUndoBanner={handleUndoBanner}
       />
 
       {/* Main Continuous Vertical Scroll Content */}
       <main className="w-full px-3 sm:px-4 flex flex-col flex-1">
-        {/* BUG 2 FIX: Persona Quick Selector Tabs Bar with horizontal scroll ref */}
+
+        {/* F8: Persona Quick Selector Tabs Bar — ★ dot on selected personas */}
         <div 
           ref={tabRowRef}
           className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 px-1 mb-1 scroll-smooth"
         >
           {PERSONAS.map((p, idx) => {
             const isActive = idx === currentPersonaIndex;
+            const isSelected = selectedPersonas.includes(p.id);
             return (
               <button
                 key={p.id}
@@ -125,8 +201,13 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
                 }`}
               >
                 <span>{p.name}</span>
+                {/* Active pulsing dot */}
                 {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                )}
+                {/* F8: ★ dot for selected personas (when not the active tab) */}
+                {!isActive && isSelected && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" aria-label="Selected persona" />
                 )}
               </button>
             );
@@ -153,7 +234,7 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
           </motion.div>
         </AnimatePresence>
 
-        {/* Vertical Stack of Persona White Info Cards */}
+        {/* Vertical Stack of Persona Info Cards */}
         <div className="w-full my-3 flex flex-col gap-3">
           <AnimatePresence mode="wait">
             <motion.div
@@ -170,12 +251,17 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
           </AnimatePresence>
         </div>
 
-        {/* Chatbot Section at the bottom of continuous vertical scroll */}
+        {/* F9: ONE shared assistant — same messages/draft state across all persona pages */}
         <ChatbotSection
           persona={activePersona}
           currentLocation={currentLocation}
           currentTempC={currentLocation.tempC}
           tempUnit={tempUnit}
+          // F9 shared state — passed from HomeScreen so it survives swipes
+          sharedMessages={sharedMessages}
+          setSharedMessages={setSharedMessages}
+          sharedDraftMap={sharedDraftMap}
+          setSharedDraftMap={setSharedDraftMap}
         />
       </main>
 

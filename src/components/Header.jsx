@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   MapPin, 
   ChevronDown, 
   CloudSun, 
   Sparkles, 
   Smartphone, 
-  Maximize2
+  Maximize2,
+  X,
+  RotateCcw
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header({
   location,
@@ -20,6 +23,11 @@ export default function Header({
   onOpenProfile,
   isPhoneFrame,
   onTogglePhoneFrame,
+  // F6: auto-switch banner props
+  autoBannerVisible,
+  autoBannerText,
+  onDismissBanner,
+  onUndoBanner,
 }) {
   const displayTemp = tempUnit === 'C' 
     ? `${location.tempC}°` 
@@ -43,11 +51,12 @@ export default function Header({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* C° / F° Toggle button */}
+          {/* F3: °C/°F toggle — properly labeled, persisted in localStorage via HomeScreen */}
           <button
             onClick={onToggleTempUnit}
+            aria-label={`Switch to ${tempUnit === 'C' ? 'Fahrenheit' : 'Celsius'}`}
             className="bg-white/80 hover:bg-white text-slate-700 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200/80 shadow-2xs transition-all"
-            title="Toggle Temperature Unit"
+            title={`Currently showing °${tempUnit}. Click to switch.`}
           >
             °{tempUnit}
           </button>
@@ -73,10 +82,7 @@ export default function Header({
         </div>
       </div>
 
-      {/* Primary Visual Header Row:
-          Top row: location pin icon + "Current Location" with dropdown chevron, 
-          on the right a blue rounded toggle switch
-      */}
+      {/* Primary Visual Header Row */}
       <div className="flex items-center justify-between">
         {/* Location Dropdown Trigger */}
         <button
@@ -99,17 +105,16 @@ export default function Header({
           </div>
         </button>
 
-        {/* Blue Rounded Toggle Switch */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">
-            Auto Mode
-          </span>
+        {/* F3: Auto toggle — labeled "Auto" with visible text on all screen sizes */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-bold text-slate-500">Auto</span>
           <button
             onClick={onToggleAutoSwitched}
+            aria-label={autoSwitchedMode ? 'Auto persona: ON. Click to turn off.' : 'Auto persona: OFF. Click to turn on.'}
+            title={autoSwitchedMode ? 'Auto persona is ON' : 'Auto persona is OFF'}
             className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 shadow-inner flex items-center ${
               autoSwitchedMode ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
             }`}
-            title="Toggle Auto-Switched Location Mode"
           >
             <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
           </button>
@@ -134,18 +139,46 @@ export default function Header({
         </div>
       </div>
 
-      {/* Rounded white "auto-switched mode" info pill with a location icon */}
-      <div className="w-full bg-white/90 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-slate-200/70 shadow-xs flex items-center justify-between gap-2.5 h-auto min-h-[38px] transition-all">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0 self-center" />
-          <span className="text-xs font-semibold text-slate-700 leading-snug break-words">
-            Auto-switched to {currentPersona.name} Mode — tailored for {currentPersona.name} in {location.name}
-          </span>
-        </div>
-        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 self-center">
-          Active
-        </span>
-      </div>
+      {/* F6: Auto-switch banner — shown ONLY when an auto-switch actually happened */}
+      {/* Dismissible × | Auto-hides after 6s | Has "Undo" | Shows WHY it switched */}
+      <AnimatePresence>
+        {autoBannerVisible && autoBannerText && (
+          <motion.div
+            key="auto-banner"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="w-full bg-blue-50 border border-blue-200 px-3 py-2 rounded-2xl flex items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="text-xs font-semibold text-slate-700 leading-snug truncate">
+                {autoBannerText}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Undo: returns to previous persona & turns Auto OFF */}
+              <button
+                onClick={onUndoBanner}
+                aria-label="Undo auto-switch"
+                className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-full hover:bg-blue-100 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Undo</span>
+              </button>
+              {/* Dismiss */}
+              <button
+                onClick={onDismissBanner}
+                aria-label="Dismiss auto-switch banner"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

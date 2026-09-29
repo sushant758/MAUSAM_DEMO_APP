@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bot, 
@@ -11,72 +11,68 @@ import {
   User, 
   Loader2
 } from 'lucide-react';
+import { useState } from 'react';
 
-export default function ChatbotSection({ persona, currentLocation, currentTempC, tempUnit }) {
-  // Store chat history and draft input text independently for every persona ID
-  const [chatHistoryMap, setChatHistoryMap] = useState({});
-  const [draftInputMap, setDraftInputMap] = useState({});
-  
+// ─── F9: ONE shared assistant ─────────────────────────────────────────────────
+// - sharedMessages / setSharedMessages: the single global message list (from HomeScreen)
+// - sharedDraftMap / setSharedDraftMap: per-persona draft text (also from HomeScreen)
+// The header text and suggested-question chips remain persona-specific.
+// Switching personas does NOT clear history — each message records which persona sent it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function ChatbotSection({
+  persona,
+  currentLocation,
+  currentTempC,
+  tempUnit,
+  // F9 shared state
+  sharedMessages,
+  setSharedMessages,
+  sharedDraftMap,
+  setSharedDraftMap,
+}) {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
-  
+
   const chatScrollBoxRef = useRef(null);
   const recognitionRef = useRef(null);
 
   const personaId = persona.id;
 
-  // Retrieve or initialize messages for the active persona
-  const activeMessages = chatHistoryMap[personaId] || [
-    {
-      id: `welcome-${personaId}`,
-      sender: 'bot',
-      text: `Hello! I'm your ${persona.name} Weather Assistant. Ask me anything about current weather impact on your ${persona.name.toLowerCase()} schedule in ${currentLocation.name}!`,
-      time: 'Just now',
-    },
-  ];
-
-  // Retrieve draft text for the active persona
-  const currentInputText = draftInputMap[personaId] || '';
-
-  // Ensure default welcome message is initialized in map if missing
+  // Initialize with a single shared welcome message on first mount
   useEffect(() => {
-    if (!chatHistoryMap[personaId]) {
-      setChatHistoryMap((prev) => ({
-        ...prev,
-        [personaId]: [
-          {
-            id: `welcome-${personaId}`,
-            sender: 'bot',
-            text: `Hello! I'm your ${persona.name} Weather Assistant. Ask me anything about current weather impact on your ${persona.name.toLowerCase()} schedule in ${currentLocation.name}!`,
-            time: 'Just now',
-          },
-        ],
-      }));
+    if (sharedMessages.length === 0) {
+      setSharedMessages([{
+        id: 'welcome-shared',
+        sender: 'bot',
+        persona: personaId,
+        text: `Hello! I'm your Mausam Weather Assistant. Ask me anything about weather, and I'll tailor advice to your active persona.`,
+        time: 'Just now',
+      }]);
     }
-  }, [personaId, currentLocation.name]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Scroll ONLY the inner chat message box when new messages arrive
-  const scrollToInnerChatBottom = () => {
+  // Current draft for the active persona
+  const currentInputText = sharedDraftMap[personaId] || '';
+  const setInputForPersona = (val) => {
+    setSharedDraftMap((prev) => ({ ...prev, [personaId]: val }));
+  };
+
+  // Scroll ONLY the inner chat box — never the whole page (critical invariant)
+  const scrollToInnerBottom = () => {
     if (chatScrollBoxRef.current) {
       chatScrollBoxRef.current.scrollTop = chatScrollBoxRef.current.scrollHeight;
     }
   };
 
-  const setInputForActivePersona = (val) => {
-    setDraftInputMap((prev) => ({
-      ...prev,
-      [personaId]: val,
-    }));
-  };
+  // ─── Voice Input (STT) ─────────────────────────────────────────────────────
+  const hasSpeechRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
-  // Handle Speech Recognition (Voice Input)
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please type your question.');
-      return;
-    }
+    if (!SpeechRecognition) return; // button hidden when unsupported
 
     if (isListening) {
       recognitionRef.current?.stop();
@@ -86,67 +82,42 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
+      recognition.lang = 'en-IN';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputForActivePersona(transcript);
+      recognition.onstart = () => setIsListening(true);
+      recognition.onresult = (e) => {
+        setInputForPersona(e.results[0][0].transcript);
         setIsListening(false);
       };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
       recognitionRef.current = recognition;
       recognition.start();
     } catch (e) {
-      console.error(e);
       setIsListening(false);
     }
   };
 
-  // Handle Text-to-Speech (Audio Output)
+  // ─── Text-to-Speech ────────────────────────────────────────────────────────
   const speakResponse = (messageId, text) => {
-    if (!('speechSynthesis' in window)) {
-      alert('Text-to-speech is not supported in this browser.');
-      return;
-    }
-
+    if (!('speechSynthesis' in window)) return;
     if (speakingMessageId === messageId) {
       window.speechSynthesis.cancel();
       setSpeakingMessageId(null);
       return;
     }
-
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
     utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    utterance.onend = () => {
-      setSpeakingMessageId(null);
-    };
-
-    utterance.onerror = () => {
-      setSpeakingMessageId(null);
-    };
-
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
     setSpeakingMessageId(messageId);
     window.speechSynthesis.speak(utterance);
   };
 
+  // ─── Send message ──────────────────────────────────────────────────────────
   const handleSend = (textToSend = currentInputText) => {
     const query = textToSend.trim();
     if (!query) return;
@@ -154,54 +125,43 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
     const userMsg = {
       id: `user-${Date.now()}`,
       sender: 'user',
+      persona: personaId,   // records which persona context was active
       text: query,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // Update state for active persona
-    setChatHistoryMap((prev) => ({
-      ...prev,
-      [personaId]: [...(prev[personaId] || activeMessages), userMsg],
-    }));
-
-    setInputForActivePersona('');
+    setSharedMessages((prev) => [...prev, userMsg]);
+    setInputForPersona('');
     setIsTyping(true);
+    setTimeout(scrollToInnerBottom, 50);
 
-    setTimeout(() => {
-      scrollToInnerChatBottom();
-    }, 50);
-
-    // Generate AI response after delay
+    // Rule-based answer from persona's chatbotAnswers (ruleBasedAnswer fallback)
     setTimeout(() => {
       let botAnswer = persona.chatbotAnswers[query] || persona.chatbotAnswers.default;
-
       if (query.toLowerCase().includes('temp') || query.toLowerCase().includes('weather')) {
-        const displayTemp = tempUnit === 'C' ? `${currentTempC}°C` : `${Math.round((currentTempC * 9)/5 + 32)}°F`;
-        botAnswer += ` (Current temp in ${currentLocation.name} is ${displayTemp}).`;
+        const displayTemp = tempUnit === 'C'
+          ? `${currentTempC}°C`
+          : `${Math.round((currentTempC * 9) / 5 + 32)}°F`;
+        botAnswer += ` (Current temp in ${currentLocation.name}: ${displayTemp})`;
       }
 
       const botMsg = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
+        persona: personaId,
         text: botAnswer,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setChatHistoryMap((prev) => ({
-        ...prev,
-        [personaId]: [...(prev[personaId] || []), botMsg],
-      }));
+      setSharedMessages((prev) => [...prev, botMsg]);
       setIsTyping(false);
-
-      setTimeout(() => {
-        scrollToInnerChatBottom();
-      }, 50);
+      setTimeout(scrollToInnerBottom, 50);
     }, 900);
   };
 
   return (
     <div className="w-full bg-white rounded-[2rem] p-4 sm:p-5 shadow-md border border-slate-200/90 my-5 flex flex-col shrink-0 relative">
-      {/* Header */}
+      {/* Header — persona-specific title */}
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
@@ -213,18 +173,17 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
             </h3>
             <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Tailored for {persona.name} conditions
+              Shared history • Tailored advice per persona
             </span>
           </div>
         </div>
-
         <div className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
           <Sparkles className="w-3 h-3 text-amber-500" />
           <span>Mausam AI</span>
         </div>
       </div>
 
-      {/* Quick Question Chips (Kept & Untouched) */}
+      {/* Persona-specific suggested question chips */}
       <div className="mb-3 shrink-0">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
           Suggested Questions
@@ -243,13 +202,13 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
         </div>
       </div>
 
-      {/* Chat Messages Container */}
-      <div 
+      {/* Chat messages — inner scroll only, never the whole page */}
+      <div
         ref={chatScrollBoxRef}
         className="max-h-48 sm:max-h-52 overflow-y-auto pr-1 space-y-3 no-scrollbar my-2 flex-1 min-h-[90px]"
       >
         <AnimatePresence initial={false}>
-          {activeMessages.map((msg) => (
+          {sharedMessages.map((msg) => (
             <motion.div
               key={msg.id}
               initial={{ opacity: 0, y: 10, scale: 0.96 }}
@@ -272,25 +231,22 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
                 }`}
               >
                 <p>{msg.text}</p>
-
                 <div className="flex items-center justify-between gap-3 mt-1 text-[9px] font-medium text-slate-400">
                   <span className={msg.sender === 'user' ? 'text-amber-100' : 'text-slate-400'}>
                     {msg.time}
                   </span>
-
-                  {/* Speaker Text-To-Speech Button */}
                   {msg.sender === 'bot' && (
                     <button
                       type="button"
                       onClick={() => speakResponse(msg.id, msg.text)}
                       className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600 hover:text-amber-700 p-0.5 rounded transition-colors"
                       title="Read response aloud"
+                      aria-label="Read response aloud"
                     >
-                      {speakingMessageId === msg.id ? (
-                        <VolumeX className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
-                      ) : (
-                        <Volume2 className="w-3.5 h-3.5 text-amber-600" />
-                      )}
+                      {speakingMessageId === msg.id
+                        ? <VolumeX className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
+                        : <Volume2 className="w-3.5 h-3.5 text-amber-600" />
+                      }
                     </button>
                   )}
                 </div>
@@ -312,62 +268,58 @@ export default function ChatbotSection({ persona, currentLocation, currentTempC,
             className="flex items-center gap-2 text-xs font-semibold text-slate-400 pl-2"
           >
             <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-            <span>Mausam AI is thinking...</span>
+            <span>Mausam AI is thinking…</span>
           </motion.div>
         )}
       </div>
 
-      {/* CLAUDE-STYLE CHAT INPUT BAR (High Visibility Block Element with 44px+ height) */}
+      {/* Input bar */}
       <div className="w-full pt-3 mt-3 border-t border-slate-200 flex flex-col gap-1.5 shrink-0 bg-white">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
           Type your question
         </span>
-        <form 
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="relative w-full flex items-center bg-slate-100 hover:bg-slate-50/80 border-2 border-slate-200 focus-within:border-amber-500 focus-within:bg-white rounded-2xl p-1.5 min-h-[50px] transition-all shadow-2xs"
         >
-          {/* Left Side: Voice Input Microphone Button */}
-          <button
-            type="button"
-            onClick={toggleSpeechRecognition}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-              isListening
-                ? 'bg-red-500 text-white animate-pulse shadow-md'
-                : 'bg-white text-slate-600 shadow-2xs hover:bg-slate-100'
-            }`}
-            title={isListening ? 'Stop listening' : 'Voice Input (Speech-to-Text)'}
-          >
-            {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-slate-600" />}
-          </button>
+          {/* Mic — hidden when Web Speech API not supported (F9 / A6 spec) */}
+          {hasSpeechRecognition && (
+            <button
+              type="button"
+              onClick={toggleSpeechRecognition}
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                isListening
+                  ? 'bg-red-500 text-white animate-pulse shadow-md'
+                  : 'bg-white text-slate-600 shadow-2xs hover:bg-slate-100'
+              }`}
+              aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+              title={isListening ? 'Stop listening' : 'Voice Input (Speech-to-Text)'}
+            >
+              {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-slate-600" />}
+            </button>
+          )}
 
-          {/* Center: Controlled Typing Input Field (Explicit 44px+ touch height) */}
           <input
             type="text"
             value={currentInputText}
-            onChange={(e) => setInputForActivePersona(e.target.value)}
+            onChange={(e) => setInputForPersona(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSend();
-              }
+              if (e.key === 'Enter') { e.preventDefault(); handleSend(); }
             }}
-            placeholder="Ask about today's weather..."
-            className="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 h-11 sm:h-12 min-h-[44px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-semibold focus:ring-0 focus:outline-none"
+            placeholder="Ask about today's weather…"
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 h-11 sm:h-12 min-h-[44px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-semibold focus:ring-0"
           />
 
-          {/* Right Side: Active / Disabled Upward Send Arrow Button */}
+          {/* Send — activates only with non-empty text */}
           <button
             type="submit"
             disabled={!currentInputText.trim()}
+            aria-label="Send message"
             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
               currentInputText.trim()
                 ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600 cursor-pointer scale-105'
                 : 'bg-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
             }`}
-            title="Send Question"
           >
             <ArrowUp className="w-4 h-4 stroke-[2.5]" />
           </button>

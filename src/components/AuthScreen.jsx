@@ -2,61 +2,23 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CloudSun, 
-  Sun, 
-  MapPin, 
   Phone, 
-  Lock, 
   User, 
   Sparkles, 
   ArrowRight, 
-  CheckCircle2,
-  Navigation,
-  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function AuthScreen({ onLoginSuccess }) {
   const [tab, setTab] = useState('signup'); // 'signup' or 'login'
 
-  // Form states
+  // Form states — F7: only Name (optional) + Phone for signup; Phone only for login
   const [name, setName] = useState('');
-  const [gender, setGender] = useState('Male'); // Male / Female / Other
-  const [age, setAge] = useState('26');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [locationName, setLocationName] = useState('Indiranagar, Bengaluru');
-  const [isLocating, setIsLocating] = useState(false);
-  const [locationGranted, setLocationGranted] = useState(false);
-
-  // Trigger browser geolocation
-  const handleRequestLocation = () => {
-    setIsLocating(true);
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      setIsLocating(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setIsLocating(false);
-        setLocationGranted(true);
-        // Set detected location name with GPS label
-        const coords = `${position.coords.latitude.toFixed(2)}°N, ${position.coords.longitude.toFixed(2)}°E`;
-        setLocationName(`Current GPS (${coords})`);
-      },
-      (error) => {
-        setIsLocating(false);
-        console.warn('Geolocation error:', error.message);
-        alert('Could not retrieve exact location. Defaulting to Indiranagar, Bengaluru.');
-      },
-      { timeout: 8000 }
-    );
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Trigger celebratory confetti on login/signup!
     try {
       confetti({
@@ -67,24 +29,19 @@ export default function AuthScreen({ onLoginSuccess }) {
     } catch (err) {}
 
     const userData = {
-      name: name.trim() || (tab === 'signup' ? 'Runner Sushant' : 'Mausam User'),
-      gender,
-      age: age || '26',
+      name: name.trim() || (tab === 'signup' ? 'Mausam User' : 'Mausam User'),
       phone: phone.trim() || '+91 9876543210',
-      location: locationName,
+      // Location is asked in onboarding (A1), not here
     };
 
     onLoginSuccess(userData);
   };
 
-  // Quick Preset Demo Logins
-  const handleQuickDemo = (personaName, defaultName) => {
+  // Quick Preset Demo Login
+  const handleQuickDemo = () => {
     const demoData = {
-      name: defaultName,
-      gender: 'Male',
-      age: '28',
+      name: 'Alex Morgan',
       phone: '+91 98765 43210',
-      location: 'Indiranagar, Bengaluru',
     };
     onLoginSuccess(demoData);
   };
@@ -109,7 +66,7 @@ export default function AuthScreen({ onLoginSuccess }) {
           Mausam <span className="text-amber-500">मौसम</span>
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1 max-w-xs">
-          Personalized Mobile Weather & Persona Intelligence
+          Personalized Mobile Weather &amp; Persona Intelligence
         </p>
       </motion.div>
 
@@ -158,16 +115,15 @@ export default function AuthScreen({ onLoginSuccess }) {
                 transition={{ duration: 0.25 }}
                 className="flex flex-col gap-3.5"
               >
-                {/* Name */}
+                {/* Name (optional) */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Full Name
+                    Name <span className="text-slate-400 normal-case font-normal">(optional)</span>
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
                       type="text"
-                      required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Sushant Sharma"
@@ -176,122 +132,7 @@ export default function AuthScreen({ onLoginSuccess }) {
                   </div>
                 </div>
 
-                {/* Gender Segmented Control */}
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Gender
-                  </label>
-                  <div className="flex gap-2">
-                    {['Male', 'Female', 'Other'].map((g) => (
-                      <button
-                        type="button"
-                        key={g}
-                        onClick={() => setGender(g)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                          gender === g
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Age & Phone Number */}
-                <div className="flex gap-3">
-                  <div className="w-1/3">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Age
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder="26"
-                      min="10"
-                      max="100"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="9876543210"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-3 py-2.5 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Location Access Button */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleRequestLocation}
-                    disabled={isLocating}
-                    className={`w-full py-2.5 px-4 rounded-2xl text-xs font-bold border flex items-center justify-center gap-2 transition-all ${
-                      locationGranted
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    {isLocating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                        <span>Detecting GPS Location...</span>
-                      </>
-                    ) : locationGranted ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span className="truncate">{locationName}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Navigation className="w-4 h-4 text-amber-500" />
-                        <span>Allow Location Access</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="login-fields"
-                initial={{ opacity: 0, x: 15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
-                transition={{ duration: 0.25 }}
-                className="flex flex-col gap-3.5"
-              >
+                {/* Phone Number */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Phone Number
@@ -309,22 +150,40 @@ export default function AuthScreen({ onLoginSuccess }) {
                   </div>
                 </div>
 
+                {/* Note: location will be asked in onboarding */}
+                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                  📍 We'll ask for your location after sign-up to show local weather.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="login-fields"
+                initial={{ opacity: 0, x: 15 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -15 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-3.5"
+              >
+                {/* Phone only for login */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Password
+                    Phone Number
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
-                      type="password"
+                      type="tel"
                       required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="9876543210"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
                     />
                   </div>
                 </div>
+                <p className="text-[10px] text-slate-400 text-center">
+                  Any phone number works — this is a prototype demo.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -346,7 +205,7 @@ export default function AuthScreen({ onLoginSuccess }) {
           </span>
           <button
             type="button"
-            onClick={() => handleQuickDemo('Runner', 'Alex Morgan')}
+            onClick={handleQuickDemo}
             className="w-full py-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 transition-all flex items-center justify-center gap-1.5"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -357,7 +216,7 @@ export default function AuthScreen({ onLoginSuccess }) {
 
       {/* Footer Branding */}
       <div className="text-center text-[11px] font-semibold text-slate-400 z-10 pb-2">
-        Mausam iOS Weather Platform • Built for India & Beyond
+        Mausam iOS Weather Platform • Built for India &amp; Beyond
       </div>
     </div>
   );
