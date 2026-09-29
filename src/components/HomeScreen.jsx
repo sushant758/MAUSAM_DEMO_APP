@@ -11,7 +11,7 @@ import WhiteCard from './WhiteCard';
 import WhySheet from './WhySheet';
 import ChatbotSection from './ChatbotSection';
 import LocationModal from './LocationModal';
-import UserProfileModal from './UserProfileModal';
+import SettingsSheet from './SettingsSheet';
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const LS_UNIT = 'mausam.tempUnit';
@@ -50,11 +50,18 @@ function CardSkeleton({ count = 4 }) {
   );
 }
 
-export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhoneFrame }) {
-  const [currentPersonaIndex, setCurrentPersonaIndex] = useState(0);
-  const [tempUnit, setTempUnit] = useState(() => readLS(LS_UNIT, 'C'));
-  const [autoSwitchedMode, setAutoSwitchedMode] = useState(() => readLS(LS_AUTO, true));
-  const [currentLocation, setCurrentLocation] = useState(MOCK_LOCATIONS[0]);
+export default function HomeScreen({
+  user, onLogout, isPhoneFrame, onTogglePhoneFrame,
+  // A1: settings from onboarding / SettingsSheet
+  initialLocation, initialPersonaId, initialTempUnit, initialAutoPersona,
+  onSettingsChange,
+}) {
+  // A1: initialPersonaId from onboarding sets the starting persona
+  const initPersonaIdx = Math.max(0, PERSONAS.findIndex((p) => p.id === (initialPersonaId ?? 'health')));
+  const [currentPersonaIndex, setCurrentPersonaIndex] = useState(initPersonaIdx);
+  const [tempUnit, setTempUnit] = useState(initialTempUnit ?? 'C');
+  const [autoSwitchedMode, setAutoSwitchedMode] = useState(initialAutoPersona ?? true);
+  const [currentLocation, setCurrentLocation] = useState(initialLocation ?? MOCK_LOCATIONS[0]);
 
   // A4: weather context
   const [weatherCtx, setWeatherCtx] = useState(null);
@@ -69,9 +76,9 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
   // F8: selected personas
   const [selectedPersonas, setSelectedPersonas] = useState(() => [PERSONAS[0].id]);
 
-  // Modals
+  // Modals / sheets
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // A5: WhySheet state + card votes (no backend — stored in React state)
   const [whyCard, setWhyCard] = useState(null);
@@ -91,9 +98,9 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
 
   const activePersona = PERSONAS[currentPersonaIndex];
 
-  // ─── Persist F3 settings ───────────────────────────────────────────────────
-  useEffect(() => { writeLS(LS_UNIT, tempUnit); }, [tempUnit]);
-  useEffect(() => { writeLS(LS_AUTO, autoSwitchedMode); }, [autoSwitchedMode]);
+  // ─── A1: sync tempUnit / autoSwitchedMode back to App settings ─────────────
+  useEffect(() => { writeLS(LS_UNIT, tempUnit); onSettingsChange?.({ tempUnit }); }, [tempUnit]);
+  useEffect(() => { writeLS(LS_AUTO, autoSwitchedMode); onSettingsChange?.({ autoPersona: autoSwitchedMode }); }, [autoSwitchedMode]);
 
   // ─── A4: Fetch weather on location change ─────────────────────────────────
   useEffect(() => {
@@ -257,7 +264,7 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
         onToggleAutoSwitched={() => setAutoSwitchedMode((a) => !a)}
         currentPersona={activePersona}
         user={user}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenProfile={() => setIsSettingsOpen(true)}
         isPhoneFrame={isPhoneFrame}
         onTogglePhoneFrame={onTogglePhoneFrame}
         autoBannerVisible={autoBannerVisible}
@@ -414,17 +421,25 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
         onVote={handleVote}
       />
 
-      <LocationModal
-        isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
-        currentLocation={currentLocation}
-        onSelectLocation={(loc) => setCurrentLocation(loc)}
-        tempUnit={tempUnit}
-      />
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+      <SettingsSheet
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         user={user}
+        currentLocation={currentLocation}
+        tempUnit={tempUnit}
+        autoPersona={autoSwitchedMode}
+        personaId={activePersona.id}
+        onChangeLocation={(loc) => {
+          setCurrentLocation(loc);
+          onSettingsChange?.({ location: loc });
+        }}
+        onChangeTempUnit={setTempUnit}
+        onChangeAutoPersona={setAutoSwitchedMode}
+        onChangePersona={(pid) => {
+          const idx = PERSONAS.findIndex((p) => p.id === pid);
+          if (idx >= 0) goToPersona(idx, 'tab');
+          onSettingsChange?.({ personaId: pid });
+        }}
         onLogout={onLogout}
       />
     </div>
