@@ -199,9 +199,13 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
   }, [activePersona, weatherCtx]);
 
   // ─── A2: Check if any warning card is active ──────────────────────────────
+  // Belt-and-suspenders: banner requires BOTH live data AND at least one
+  // card that the ranker tagged isWarning (urgency >= 0.75 + live + non-mock).
+  // The ranker already blocks isWarning without live data, but we guard here
+  // too so the banner is structurally impossible without real API data.
   const hasWarning = useMemo(
-    () => rankedCards.some((c) => c.isWarning),
-    [rankedCards]
+    () => weatherCtx?.isLive === true && rankedCards.some((c) => c.isWarning),
+    [rankedCards, weatherCtx]
   );
 
   // ─── A5: WhySheet handlers ────────────────────────────────────────────────
@@ -254,6 +258,7 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
 
         {/* A2: Warning banner when a card has urgency ≥ 0.75 */}
         <AnimatePresence>
+          {/* Banner: only when live data AND actual isWarning cards exist */}
           {hasWarning && !wxLoading && (
             <motion.div
               key="warning-banner"
