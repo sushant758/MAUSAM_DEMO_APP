@@ -1,17 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Bot, 
-  ArrowUp, 
-  Mic, 
-  MicOff, 
-  Volume2, 
-  VolumeX, 
-  Sparkles, 
-  User, 
-  Loader2
+import {
+  Bot, ArrowUp, Mic, MicOff, Volume2, VolumeX, Sparkles, User, Loader2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { sendChatMessage } from '../services/chat';
 
 // ─── F9: ONE shared assistant ─────────────────────────────────────────────────
 // - sharedMessages / setSharedMessages: the single global message list (from HomeScreen)
@@ -25,6 +18,7 @@ export default function ChatbotSection({
   currentLocation,
   currentTempC,
   tempUnit,
+  weatherCtx,       // A6: full weather context forwarded to chat service
   // F9 shared state
   sharedMessages,
   setSharedMessages,
@@ -117,17 +111,17 @@ export default function ChatbotSection({
     window.speechSynthesis.speak(utterance);
   };
 
-  // ─── Send message ──────────────────────────────────────────────────────────
-  const handleSend = (textToSend = currentInputText) => {
+  // ─── A6: Send message via /api/chat → rule-based fallback ─────────────────
+  const handleSend = async (textToSend = currentInputText) => {
     const query = textToSend.trim();
     if (!query) return;
 
     const userMsg = {
-      id: `user-${Date.now()}`,
+      id:     `user-${Date.now()}`,
       sender: 'user',
-      persona: personaId,   // records which persona context was active
-      text: query,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      persona: personaId,
+      text:   query,
+      time:   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setSharedMessages((prev) => [...prev, userMsg]);
@@ -135,28 +129,38 @@ export default function ChatbotSection({
     setIsTyping(true);
     setTimeout(scrollToInnerBottom, 50);
 
-    // Rule-based answer from persona's chatbotAnswers (ruleBasedAnswer fallback)
-    setTimeout(() => {
-      let botAnswer = persona.chatbotAnswers[query] || persona.chatbotAnswers.default;
-      if (query.toLowerCase().includes('temp') || query.toLowerCase().includes('weather')) {
-        const displayTemp = tempUnit === 'C'
-          ? `${currentTempC}°C`
-          : `${Math.round((currentTempC * 9) / 5 + 32)}°F`;
-        botAnswer += ` (Current temp in ${currentLocation.name}: ${displayTemp})`;
-      }
+    // Build LLM conversation history (last 10 turns, excluding welcome)
+    const history = sharedMessages
+      .filter((m) => m.sender === 'user' || m.sender === 'bot')
+      .slice(-10)
+      .map((m) => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
 
-      const botMsg = {
-        id: `bot-${Date.now()}`,
+    // Enrich ctx with location + tempUnit
+    const enrichedCtx = {
+      ...(weatherCtx ?? {}),
+      locationName: currentLocation?.name ?? '',
+      tempUnit,
+    };
+
+    try {
+      const reply = await sendChatMessage(query, history, personaId, enrichedCtx);
+      setSharedMessages((prev) => [...prev, {
+        id:     `bot-${Date.now()}`,
         sender: 'bot',
         persona: personaId,
-        text: botAnswer,
+        text:   reply,
+        time:   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }]);
+    } catch {
+      setSharedMessages((prev) => [...prev, {
+        id: `bot-err-${Date.now()}`, sender: 'bot', persona: personaId,
+        text: 'Sorry, I had trouble responding. Please try again.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setSharedMessages((prev) => [...prev, botMsg]);
+      }]);
+    } finally {
       setIsTyping(false);
       setTimeout(scrollToInnerBottom, 50);
-    }, 900);
+    }
   };
 
   return (

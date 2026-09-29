@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "env": {
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "OPENAI_API_KEY": "@openai_api_key"
+  }
+}

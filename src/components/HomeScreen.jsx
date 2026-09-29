@@ -404,6 +404,7 @@ export default function HomeScreen({
           currentLocation={liveLocation}
           currentTempC={liveLocation.tempC}
           tempUnit={tempUnit}
+          weatherCtx={weatherCtx}
           sharedMessages={sharedMessages}
           setSharedMessages={setSharedMessages}
           sharedDraftMap={sharedDraftMap}
