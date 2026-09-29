@@ -65,13 +65,18 @@ export function rankPersonaCards(personaId, ctx) {
 
     // ── 4. IMD Safety Gate ───────────────────────────────────────────────────
     // A card may only be treated as a pinned warning when ALL of:
-    //   a) urgency >= WARNING_THRESHOLD
-    //   b) ctx.isLive === true (real Open-Meteo data, not mock/fallback)
-    //   c) The card's tag does NOT start with "Mock data"
-    //      → mock cards (tide, IMD placeholder, pollen, traffic) NEVER pin
+    //   a) cardDef.canWarn === true  ← explicit per-card opt-in (only 4 cards)
+    //   b) urgency >= WARNING_THRESHOLD
+    //   c) ctx.isLive === true (real Open-Meteo data, not mock/fallback)
+    //   d) The card's tag does NOT start with "Mock data"
+    //
+    // This means ordinary cards like Rain Probability (98%), UV, Visibility,
+    // Wind, Outdoor Comfort Index, etc. CANNOT set isWarning even at 100% urgency.
+    // Only: storm_forecast (WMO 95-99), aqi (≥200), heat_index (≥41°C), frost_alert.
+    const canWarn    = cardDef.canWarn === true;
     const isMockCard = computed.tag?.toLowerCase().startsWith('mock');
-    const urgency = computed.urgency ?? 0;
-    const isWarning = urgency >= WARNING_THRESHOLD && isLiveData && !isMockCard;
+    const urgency    = computed.urgency ?? 0;
+    const isWarning  = canWarn && urgency >= WARNING_THRESHOLD && isLiveData && !isMockCard;
 
     // ── 5. A2 Ranking formula ────────────────────────────────────────────────
     // score = affinity × (0.5 + 0.5 × urgency) × learnedWeight

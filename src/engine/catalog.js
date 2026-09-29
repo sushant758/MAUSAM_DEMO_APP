@@ -46,7 +46,8 @@ export const CARD_CATALOG = [
     title: 'Air Quality',
     badgeIcon: 'Wind',
     badgeColor: 'bg-teal-100 text-teal-600 border-teal-200',
-    // Affinity: how relevant is this card for each persona (0 = omit, 1 = must show)
+    // canWarn: only AQI ≥ 200 ("Very Unhealthy") is a genuine severe alert
+    canWarn: true,
     affinity: {
       health: 1.0, fitness: 0.75, parent: 0.85, commuter: 0.5,
       beachgoer: 0.4, traveller: 0.35, farmer: 0.6, eventplanner: 0.55,
@@ -55,8 +56,10 @@ export const CARD_CATALOG = [
       const aqi  = safeAqi(ctx);
       const lbl  = aqiCategoryLabel(aqi);
       const clr  = aqiStatusColor(aqi);
-      // AQI urgency: 0 (Good) → 0, 200 (Very Unhealthy) → 1
-      const urgency = clamp(aqi / 200, 0, 1);
+      // AQI urgency: reaches 0.75 at AQI=200 ("Very Unhealthy"), 1.0 at AQI=267
+      // Formula: clamp(aqi / 267, 0, 1) — warning only fires at AQI ≥ 200.
+      // Rain Probability at 98% has NO canWarn flag; AQI ≥ 200 is a real health emergency.
+      const urgency = clamp(aqi / 267, 0, 1);
       return {
         visible: true,
         urgency,
@@ -69,7 +72,7 @@ export const CARD_CATALOG = [
     },
     whyText: (ctx, pid) =>
       `AQI is ${safeAqi(ctx)} (${aqiCategoryLabel(safeAqi(ctx))}) right now. ${pid === 'health' || pid === 'parent' ? 'High AQI affects breathing — especially important for this persona.' : 'Air quality impacts outdoor comfort and activity safety.'}`,
-    formulaText: 'US EPA AQI formula (PM2.5 & PM10 breakpoints). Scale: 0–50 Good, 51–100 Moderate, 101–150 Unhealthy for Sensitive, 151–200 Unhealthy, 201–300 Very Unhealthy, 301+ Hazardous.',
+    formulaText: 'US EPA AQI formula (PM2.5 & PM10 breakpoints). Scale: 0–50 Good, 51–100 Moderate, 101–150 Unhealthy for Sensitive, 151–200 Unhealthy, 201–300 Very Unhealthy, 301+ Hazardous. Warning threshold: AQI ≥ 200.',
     dataFields: ['us_aqi', 'pm2_5', 'pm10'],
   },
 
@@ -112,6 +115,8 @@ export const CARD_CATALOG = [
     title: 'Humidity & Heat',
     badgeIcon: 'Droplets',
     badgeColor: 'bg-cyan-100 text-cyan-600 border-cyan-200',
+    // canWarn: extreme heat (HI ≥ 41°C = "Danger") is a genuine severe alert
+    canWarn: true,
     affinity: {
       health: 0.85, fitness: 0.95, parent: 0.7, commuter: 0.4,
       beachgoer: 0.6, traveller: 0.45, farmer: 0.65, eventplanner: 0.75,
@@ -121,7 +126,8 @@ export const CARD_CATALOG = [
       const lbl = heatCategoryLabel(hi);
       const rh  = ctx?.weather?.humidity ?? 50;
       const t   = ctx?.weather?.temp ?? 25;
-      // Urgency: comfortable=0, caution=0.3, extreme caution=0.6, danger=0.85, extreme danger=1.0
+      // Urgency: comfortable=0.05, caution=0.3, extreme caution=0.6, danger=0.85, extreme danger=1.0
+      // Only reaches WARNING_THRESHOLD (0.75) at HI ≥ 41°C (Danger category)
       const urgency = hi >= 54 ? 1.0 : hi >= 41 ? 0.85 : hi >= 32 ? 0.6 : hi >= 27 ? 0.3 : 0.05;
       const statusColor = hi >= 41 ? 'bg-red-50 text-red-700 border-red-200'
                         : hi >= 32 ? 'bg-orange-50 text-orange-700 border-orange-200'
@@ -141,7 +147,7 @@ export const CARD_CATALOG = [
       const hi = safeHi(ctx); const lbl = heatCategoryLabel(hi);
       return `Heat index is ${hi.toFixed(1)}°C (${lbl}) — combining air temperature (${ctx?.weather?.temp ?? '—'}°C) with relative humidity (${ctx?.weather?.humidity ?? '—'}%). This is what your body actually feels.`;
     },
-    formulaText: 'Rothfusz (1990) regression: HI = −42.379 + 2.049·T + 10.143·RH − 0.225·T·RH − 0.007·T² − 0.055·RH² + 0.001·T²·RH + 0.001·T·RH² − 0.000002·T²·RH². Valid for T ≥ 80°F (26.7°C) and RH ≥ 40%.',
+    formulaText: 'Rothfusz (1990) regression: HI = −42.379 + 2.049·T + 10.143·RH − 0.225·T·RH − 0.007·T² − 0.055·RH² + 0.001·T²·RH + 0.001·T·RH² − 0.000002·T²·RH². Valid for T ≥ 80°F (26.7°C) and RH ≥ 40%. Warning threshold: HI ≥ 41°C (Danger).',
     dataFields: ['temperature_2m', 'relative_humidity_2m'],
   },
 
@@ -299,6 +305,8 @@ export const CARD_CATALOG = [
     title: 'Thunderstorm Forecast',
     badgeIcon: 'ShieldAlert',
     badgeColor: 'bg-red-100 text-red-600 border-red-200',
+    // canWarn: this is explicitly a severe weather card — WMO 95-99 is thunderstorm
+    canWarn: true,
     affinity: {
       health: 0.9, fitness: 0.9, parent: 0.95, commuter: 0.95,
       beachgoer: 0.9, traveller: 0.85, farmer: 0.9, eventplanner: 0.95,
@@ -477,6 +485,8 @@ export const CARD_CATALOG = [
     title: 'Frost Alert',
     badgeIcon: 'ThermometerSun',
     badgeColor: 'bg-rose-100 text-rose-600 border-rose-200',
+    // canWarn: frost ≤4°C threatens crops and is a genuine agricultural emergency
+    canWarn: true,
     affinity: {
       health: 0, fitness: 0, parent: 0, commuter: 0.1,
       beachgoer: 0, traveller: 0.1, farmer: 1.0, eventplanner: 0,
