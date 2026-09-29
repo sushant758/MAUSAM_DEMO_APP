@@ -16,6 +16,7 @@ import {
   Bus
 } from 'lucide-react';
 import CircularGauge from './CircularGauge';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const ICON_MAP = {
   Activity,
@@ -66,7 +67,10 @@ export default function HeroCard({
   };
 
   const IconComponent = ICON_MAP[persona.hero.icon] || Sparkles;
-  const shortLabel = SHORT_NAME[persona.name] || persona.name.split(' ')[0].toUpperCase();
+  const { t } = useLanguage();
+  // A7: translated persona name; fallback to static name
+  const personaName = t(`persona.${persona.id}`, persona.name);
+  const shortLabel = personaName.split(' ')[0].toUpperCase();
 
   return (
     <div className="relative w-full my-3 px-1">
@@ -75,7 +79,7 @@ export default function HeroCard({
         <div className="flex items-center gap-1.5 min-w-0">
           <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           <span className="text-slate-900 font-extrabold tracking-tight text-xs sm:text-sm whitespace-nowrap truncate">
-            {persona.name} Mode
+            {personaName}
           </span>
         </div>
         <span className="text-[10px] bg-slate-200/90 text-slate-700 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ml-2">

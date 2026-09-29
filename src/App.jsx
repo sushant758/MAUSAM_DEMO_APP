@@ -4,6 +4,7 @@ import AuthScreen from './components/AuthScreen';
 import OnboardingFlow from './components/OnboardingFlow';
 import HomeScreen from './components/HomeScreen';
 import { MOCK_LOCATIONS } from './data/personaData';
+import { LanguageProvider } from './i18n/LanguageContext';
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const LS_USER        = 'mausam_user';
@@ -28,10 +29,11 @@ export default function App() {
 
   // Settings (A1): initialised from localStorage, updated by onboarding + SettingsSheet
   const [settings, setSettings] = useState(() => readLS(LS_SETTINGS, {
-    location:    MOCK_LOCATIONS[0],
-    personaId:   'health',
-    tempUnit:    'C',
-    autoPersona: true,
+    location:       MOCK_LOCATIONS[0],
+    personaId:      'health',
+    personaIds:     ['health'],
+    tempUnit:       'C',
+    autoPersona:    true,
   }));
 
   const [isPhoneFrame, setIsPhoneFrame] = useState(true);
@@ -54,8 +56,8 @@ export default function App() {
   }, []);
 
   // ── Onboarding complete ──────────────────────────────────────────────────
-  const handleOnboardingComplete = useCallback(({ location, personaId, tempUnit, autoPersona }) => {
-    const newSettings = { location, personaId, tempUnit, autoPersona };
+  const handleOnboardingComplete = useCallback(({ location, personaId, personaIds, tempUnit, autoPersona }) => {
+    const newSettings = { location, personaId, personaIds: personaIds ?? [personaId], tempUnit, autoPersona };
     setSettings(newSettings);
     writeLS(LS_SETTINGS, newSettings);
     setOnboarded(true);
@@ -77,7 +79,8 @@ export default function App() {
                : 'home';
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 font-sans text-slate-900">
+    <LanguageProvider>
+      <div className="w-full min-h-screen bg-slate-950 font-sans text-slate-900">
       {screen === 'auth' && (
         <PhoneFrame isPhoneFrame={isPhoneFrame} onToggleFrame={() => setIsPhoneFrame((p) => !p)}>
           <AuthScreen onLoginSuccess={handleLoginSuccess} />
@@ -97,9 +100,9 @@ export default function App() {
             onLogout={handleLogout}
             isPhoneFrame={isPhoneFrame}
             onTogglePhoneFrame={() => setIsPhoneFrame((p) => !p)}
-            // A1: settings props
             initialLocation={settings.location}
             initialPersonaId={settings.personaId}
+            initialPersonaIds={settings.personaIds ?? [settings.personaId ?? 'health']}
             initialTempUnit={settings.tempUnit}
             initialAutoPersona={settings.autoPersona}
             onSettingsChange={updateSettings}
@@ -107,5 +110,6 @@ export default function App() {
         </PhoneFrame>
       )}
     </div>
+  </LanguageProvider>
   );
 }

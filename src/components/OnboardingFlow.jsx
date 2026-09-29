@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, ChevronRight, Check, Thermometer, Zap,
-  Activity, Bike, Baby, Navigation, Waves, Plane, Wheat, PartyPopper,
-  Sun, CloudRain, Wind, Heart, Sparkles,
+  MapPin, ChevronRight, Check, Sparkles,
+  Activity, Bike, Baby, Navigation, Waves, Plane, Wheat, PartyPopper, Heart,
 } from 'lucide-react';
 import { PERSONAS, MOCK_LOCATIONS } from '../data/personaData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 // ─── Persona icon map ─────────────────────────────────────────────────────────
 const PERSONA_ICONS = {
@@ -32,17 +32,39 @@ function StepDots({ total, current }) {
 // ─── OnboardingFlow ───────────────────────────────────────────────────────────
 /**
  * A 3-step wizard shown once after first login.
- * Emits onComplete({ location, personaId, tempUnit, autoPersona })
+ * Step 2 allows MULTI-SELECT of personas (minimum 1).
+ * Emits onComplete({ location, personaId, personaIds, tempUnit, autoPersona })
  */
 export default function OnboardingFlow({ user, onComplete }) {
-  const [step, setStep] = useState(0); // 0, 1, 2
+  const { t, lang, setLang } = useLanguage();
+  const [step, setStep] = useState(0);
   const [location, setLocation] = useState(MOCK_LOCATIONS[0]);
-  const [personaId, setPersonaId] = useState('health');
+  // A7 fix: multi-select — array of selected persona IDs (min 1)
+  const [personaIds, setPersonaIds] = useState(['health']);
   const [tempUnit, setTempUnit] = useState('C');
   const [autoPersona, setAutoPersona] = useState(true);
 
   const next = () => setStep((s) => Math.min(s + 1, 2));
-  const finish = () => onComplete({ location, personaId, tempUnit, autoPersona });
+
+  const togglePersona = (id) => {
+    setPersonaIds((prev) => {
+      if (prev.includes(id)) {
+        // Never deselect the last one
+        return prev.length === 1 ? prev : prev.filter((p) => p !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const finish = () => onComplete({
+    location,
+    personaId: personaIds[0],   // primary persona
+    personaIds,                  // all selected
+    tempUnit,
+    autoPersona,
+  });
+
+  const welcomeName = user?.name?.split(' ')[0] || 'there';
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4 overflow-y-auto">
@@ -62,62 +84,69 @@ export default function OnboardingFlow({ user, onComplete }) {
         <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
 
         <div className="p-6">
+          {/* A7: language toggle in onboarding */}
+          <div className="flex justify-end mb-1">
+            <button
+              onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+              className="text-[11px] font-bold text-slate-400 hover:text-amber-600 transition-colors px-2 py-1 rounded-lg hover:bg-amber-50"
+            >
+              {lang === 'en' ? 'हिंदी' : 'English'}
+            </button>
+          </div>
+
           {/* Welcome header */}
           <div className="text-center mb-5">
             <div className="w-14 h-14 rounded-[1.4rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-orange-500/30">
               <Sparkles className="w-7 h-7 text-white stroke-[2.2]" />
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {step === 0 ? `Welcome, ${user.name?.split(' ')[0] || 'there'}! 👋`
-                : step === 1 ? 'Pick your persona'
-                : 'Set preferences'}
+              {step === 0
+                ? (lang === 'en' ? `Welcome, ${welcomeName}! 👋` : `स्वागत है, ${welcomeName}! 👋`)
+                : step === 1 ? t('ob.step2.title')
+                : t('ob.step3.title')}
             </h1>
             <p className="text-slate-400 text-sm mt-1">
-              {step === 0 ? 'Where should we check the weather?'
-                : step === 1 ? 'Same weather, different first screen.'
-                : 'You can change these any time in Settings.'}
+              {step === 0 ? t('ob.step1.title')
+                : step === 1 ? t('ob.step2.hint')
+                : t('ob.step3.hint')}
             </p>
           </div>
 
           <StepDots total={3} current={step} />
 
-          {/* ── Step 0: Location ───────────────────────────────────────────── */}
           <AnimatePresence mode="wait">
+
+            {/* ── Step 0: Location ─────────────────────────────────────────── */}
             {step === 0 && (
               <StepPanel key="loc">
                 <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
                   {MOCK_LOCATIONS.map((loc) => (
-                    <LocationRow
-                      key={loc.id}
-                      loc={loc}
-                      selected={location.id === loc.id}
-                      onSelect={setLocation}
-                    />
+                    <LocationRow key={loc.id} loc={loc} selected={location.id === loc.id} onSelect={setLocation} />
                   ))}
                 </div>
-                <PrimaryButton onClick={next}>
-                  Continue <ChevronRight className="w-4 h-4" />
-                </PrimaryButton>
+                <PrimaryButton onClick={next}>{t('ob.continue')} <ChevronRight className="w-4 h-4" /></PrimaryButton>
               </StepPanel>
             )}
 
-            {/* ── Step 1: Persona ──────────────────────────────────────────── */}
+            {/* ── Step 1: Personas (MULTI-SELECT) ─────────────────────────── */}
             {step === 1 && (
               <StepPanel key="persona">
-                <div className="grid grid-cols-2 gap-2 mb-5">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   {PERSONAS.map((p) => {
                     const Icon = PERSONA_ICONS[p.id] || Activity;
-                    const isSelected = personaId === p.id;
+                    const isSelected = personaIds.includes(p.id);
+                    const isLast = isSelected && personaIds.length === 1;
                     return (
                       <motion.button
                         key={p.id}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setPersonaId(p.id)}
+                        onClick={() => togglePersona(p.id)}
+                        disabled={isLast}
                         className={`relative flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 text-center transition-colors ${
                           isSelected
                             ? 'border-amber-400 bg-amber-50'
                             : 'border-slate-100 bg-slate-50 hover:border-slate-200'
-                        }`}
+                        } ${isLast ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                           isSelected ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'
@@ -127,7 +156,7 @@ export default function OnboardingFlow({ user, onComplete }) {
                         <span className={`text-[11px] font-bold leading-tight ${
                           isSelected ? 'text-amber-700' : 'text-slate-600'
                         }`}>
-                          {p.name.split(' ')[0]}
+                          {t(`persona.${p.id}`, p.name.split(' ')[0])}
                         </span>
                         {isSelected && (
                           <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
@@ -138,9 +167,10 @@ export default function OnboardingFlow({ user, onComplete }) {
                     );
                   })}
                 </div>
-                <PrimaryButton onClick={next}>
-                  Continue <ChevronRight className="w-4 h-4" />
-                </PrimaryButton>
+                <p className="text-center text-[11px] text-slate-400 mb-3">
+                  {personaIds.length} {lang === 'en' ? 'selected' : 'चुने गए'}
+                </p>
+                <PrimaryButton onClick={next}>{t('ob.continue')} <ChevronRight className="w-4 h-4" /></PrimaryButton>
               </StepPanel>
             )}
 
@@ -150,7 +180,7 @@ export default function OnboardingFlow({ user, onComplete }) {
                 {/* Temp unit */}
                 <div className="mb-4">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Temperature unit
+                    {t('temp.unit')}
                   </p>
                   <div className="flex gap-2">
                     {['C', 'F'].map((u) => (
@@ -172,23 +202,19 @@ export default function OnboardingFlow({ user, onComplete }) {
                 {/* Auto-persona */}
                 <div className="mb-5">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Smart persona switching
+                    {t('auto.switch')}
                   </p>
                   <button
                     onClick={() => setAutoPersona((v) => !v)}
                     className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-colors ${
-                      autoPersona
-                        ? 'border-amber-300 bg-amber-50'
-                        : 'border-slate-200 bg-slate-50'
+                      autoPersona ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50'
                     }`}
                   >
                     <div className="text-left">
                       <p className={`text-sm font-bold ${autoPersona ? 'text-amber-800' : 'text-slate-600'}`}>
-                        Auto-switch personas
+                        {t('auto.switch')}
                       </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        App suggests the best view based on time &amp; conditions
-                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{t('auto.switch.hint')}</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full flex items-center transition-colors px-0.5 ${
                       autoPersona ? 'bg-amber-500' : 'bg-slate-300'
@@ -203,7 +229,7 @@ export default function OnboardingFlow({ user, onComplete }) {
                 </div>
 
                 <PrimaryButton onClick={finish}>
-                  <Sparkles className="w-4 h-4" /> Start using Mausam
+                  <Sparkles className="w-4 h-4" /> {t('ob.start')}
                 </PrimaryButton>
               </StepPanel>
             )}
@@ -213,14 +239,13 @@ export default function OnboardingFlow({ user, onComplete }) {
 
       {/* Skip */}
       <button onClick={finish} className="mt-4 text-slate-500 text-xs font-semibold hover:text-slate-300 transition-colors">
-        Skip setup
+        {t('ob.skip')}
       </button>
     </div>
   );
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
 function StepPanel({ children }) {
   return (
     <motion.div
@@ -252,9 +277,7 @@ function LocationRow({ loc, selected, onSelect }) {
       whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(loc)}
       className={`flex items-center gap-3 p-3 rounded-2xl border-2 text-left transition-colors ${
-        selected
-          ? 'border-amber-400 bg-amber-50'
-          : 'border-slate-100 hover:border-slate-200 bg-white'
+        selected ? 'border-amber-400 bg-amber-50' : 'border-slate-100 hover:border-slate-200 bg-white'
       }`}
     >
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
@@ -263,9 +286,7 @@ function LocationRow({ loc, selected, onSelect }) {
         <MapPin className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className={`text-xs font-bold truncate ${selected ? 'text-amber-800' : 'text-slate-700'}`}>
-          {loc.name}
-        </p>
+        <p className={`text-xs font-bold truncate ${selected ? 'text-amber-800' : 'text-slate-700'}`}>{loc.name}</p>
         <p className="text-[10px] text-slate-400">{loc.country} · {loc.tempC}°C</p>
       </div>
       {selected && <Check className="w-4 h-4 text-amber-500 shrink-0 stroke-[2.5]" />}

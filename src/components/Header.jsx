@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  MapPin, 
-  ChevronDown, 
-  CloudSun, 
-  Sparkles, 
-  Smartphone, 
-  Maximize2,
-  X,
-  RotateCcw
+import {
+  MapPin, ChevronDown, CloudSun, Sparkles,
+  Smartphone, Maximize2, X, RotateCcw, Languages,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export default function Header({
   location,
@@ -29,9 +24,11 @@ export default function Header({
   onDismissBanner,
   onUndoBanner,
 }) {
-  const displayTemp = tempUnit === 'C' 
-    ? `${location.tempC}°` 
+  const displayTemp = tempUnit === 'C'
+    ? `${location.tempC}°`
     : `${location.tempF}°`;
+
+  const { lang, setLang, t } = useLanguage();
 
   return (
     <header className="w-full pt-3 pb-2 px-4 flex flex-col gap-3">
@@ -51,7 +48,7 @@ export default function Header({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* F3: °C/°F toggle — properly labeled, persisted in localStorage via HomeScreen */}
+          {/* F3: °C/°F toggle */}
           <button
             onClick={onToggleTempUnit}
             aria-label={`Switch to ${tempUnit === 'C' ? 'Fahrenheit' : 'Celsius'}`}
@@ -59,6 +56,17 @@ export default function Header({
             title={`Currently showing °${tempUnit}. Click to switch.`}
           >
             °{tempUnit}
+          </button>
+
+          {/* A7: Language toggle EN / हि */}
+          <button
+            onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+            aria-label={lang === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+            title={lang === 'en' ? 'हिंदी में बदलें' : 'Switch to English'}
+            className="bg-white/80 hover:bg-white text-slate-700 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200/80 shadow-2xs transition-all flex items-center gap-1"
+          >
+            <Languages className="w-3 h-3 text-amber-500" />
+            {lang === 'en' ? 'हि' : 'EN'}
           </button>
 
           {/* Desktop Frame Viewport Toggle */}
@@ -95,7 +103,7 @@ export default function Header({
           <div>
             <div className="flex items-center gap-1">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Current Location
+                {t('location.label')}
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:translate-y-0.5 transition-transform" />
             </div>
@@ -105,9 +113,9 @@ export default function Header({
           </div>
         </button>
 
-        {/* F3: Auto toggle — labeled "Auto" with visible text on all screen sizes */}
+        {/* F3: Auto toggle */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-slate-500">Auto</span>
+          <span className="text-[11px] font-bold text-slate-500">{t('auto.label')}</span>
           <button
             onClick={onToggleAutoSwitched}
             aria-label={autoSwitchedMode ? 'Auto persona: ON. Click to turn off.' : 'Auto persona: OFF. Click to turn on.'}

@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, MapPin, Thermometer, Zap, LogOut, ChevronRight, Check,
   RotateCcw, Info, ShieldCheck, Heart, Bike, Baby, Navigation,
-  Waves, Plane, Wheat, PartyPopper, Activity, User, Sparkles,
+  Waves, Plane, Wheat, PartyPopper, Activity, User, Sparkles, Languages,
 } from 'lucide-react';
 import { PERSONAS, MOCK_LOCATIONS } from '../data/personaData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const PERSONA_ICONS = {
   health: Heart, fitness: Bike, parent: Baby, commuter: Navigation,
@@ -37,6 +38,7 @@ export default function SettingsSheet({
   onLogout,
 }) {
   const [section, setSection] = useState(null); // null | 'location' | 'persona'
+  const { lang, setLang, t } = useLanguage();
 
   const handleClose = () => { setSection(null); onClose(); };
 
@@ -101,12 +103,12 @@ export default function SettingsSheet({
             <div className="px-5 py-4 flex flex-col gap-1">
 
               {/* ── Location ──────────────────────────────────────────────── */}
-              <SectionHeader label="Location" />
+              <SectionHeader label={t('location.label')} />
 
               <SettingRow
                 icon={<MapPin className="w-4 h-4" />}
                 iconBg="bg-sky-100 text-sky-600"
-                label="Current location"
+                label={t('location.label')}
                 value={currentLocation?.name?.split(',')[0] ?? '—'}
                 onClick={() => setSection(section === 'location' ? null : 'location')}
                 expanded={section === 'location'}
@@ -140,13 +142,13 @@ export default function SettingsSheet({
               </AnimatePresence>
 
               {/* ── Persona ───────────────────────────────────────────────── */}
-              <SectionHeader label="Persona" />
+              <SectionHeader label={t('persona.label')} />
 
               <SettingRow
                 icon={<Activity className="w-4 h-4" />}
                 iconBg="bg-violet-100 text-violet-600"
-                label="Default persona"
-                value={PERSONAS.find((p) => p.id === personaId)?.name?.split(' ')[0] ?? '—'}
+                label={t('persona.label')}
+                value={t(`persona.${personaId}`, PERSONAS.find((p) => p.id === personaId)?.name?.split(' ')[0] ?? '—')}
                 onClick={() => setSection(section === 'persona' ? null : 'persona')}
                 expanded={section === 'persona'}
               />
@@ -180,14 +182,14 @@ export default function SettingsSheet({
               </AnimatePresence>
 
               {/* ── Display ───────────────────────────────────────────────── */}
-              <SectionHeader label="Display" />
+              <SectionHeader label={t('display')} />
 
               {/* Temp unit toggle */}
               <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-slate-50 border border-slate-100">
                 <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
                   <Thermometer className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-semibold text-slate-700 flex-1">Temperature unit</span>
+                <span className="text-sm font-semibold text-slate-700 flex-1">{t('temp.unit')}</span>
                 <div className="flex gap-1 bg-slate-200 rounded-xl p-0.5">
                   {['C', 'F'].map((u) => (
                     <button
@@ -209,8 +211,8 @@ export default function SettingsSheet({
                   <Zap className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">Auto-switch persona</p>
-                  <p className="text-[10px] text-slate-400">Based on time of day &amp; conditions</p>
+                  <p className="text-sm font-semibold text-slate-700">{t('auto.switch')}</p>
+                  <p className="text-[10px] text-slate-400">{t('auto.switch.hint')}</p>
                 </div>
                 <motion.button
                   onClick={() => onChangeAutoPersona(!autoPersona)}
@@ -226,8 +228,30 @@ export default function SettingsSheet({
                 </motion.button>
               </div>
 
+              {/* ── Language ──────────────────────────────────────────────── */}
+              <SectionHeader label={t('language')} />
+              <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Languages className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 flex-1">{t('language')}</span>
+                <div className="flex gap-1 bg-slate-200 rounded-xl p-0.5">
+                  {[['en', 'EN'], ['hi', 'हिंदी']].map(([code, label]) => (
+                    <button
+                      key={code}
+                      onClick={() => setLang(code)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                        lang === code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* ── About ─────────────────────────────────────────────────── */}
-              <SectionHeader label="About" />
+              <SectionHeader label={t('about')} />
               <div className="px-3 py-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
                 <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-slate-400 leading-relaxed">
@@ -245,7 +269,7 @@ export default function SettingsSheet({
                   className="w-full py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  Log out of prototype
+                  {t('logout')}
                 </motion.button>
               </div>
 

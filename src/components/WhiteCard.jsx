@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import CircularGauge from './CircularGauge';
 import SourceChip from './SourceChip';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const BADGE_ICONS = {
   Smile,
@@ -58,6 +59,9 @@ const BADGE_ICONS = {
  */
 export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, onWhyClick }) {
   const IconComp = BADGE_ICONS[card.badgeIcon] || Sparkles;
+  const { t } = useLanguage();
+  // A7: translate card title; fall back to static card.title
+  const cardTitle = t(`card.${card.id}`, card.title);
 
   // Values come pre-computed from the A2 ranker (catalog.compute())
   // liveOverride is no longer needed — catalog returns final values directly
@@ -104,7 +108,7 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
         </div>
 
         <h3 className="min-w-0 flex-1 text-base font-bold text-slate-800 tracking-tight leading-snug">
-          {card.title}
+          {cardTitle}
         </h3>
 
         {/* Right badge — shrink-0, never pushes title */}
