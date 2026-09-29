@@ -114,33 +114,6 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
     [activePersona.id, weatherCtx]
   );
 
-  // ─── A3: Auto-persona switching ───────────────────────────────────────────
-  // When autoSwitchedMode is on, suggests the most contextually relevant
-  // persona using time-of-day, day-of-week, and live weather signals.
-  // Fires once on weather load, then every 15 min for time-of-day shifts.
-  // Swiping sets autoSwitchedMode=false and stops all auto-switching.
-  const lastAutoCtxRef = useRef(null);
-
-  useEffect(() => {
-    if (!autoSwitchedMode || !weatherCtx) return;
-
-    const doAutoSwitch = () => {
-      const signals    = buildContextSignals(weatherCtx, new Date());
-      const suggestedId = suggestPersona(signals, PERSONAS);
-      const nextIdx    = PERSONAS.findIndex((p) => p.id === suggestedId);
-      if (nextIdx >= 0) goToPersona(nextIdx, 'auto');
-    };
-
-    // Fire once when a new weather ctx arrives
-    if (lastAutoCtxRef.current !== weatherCtx) {
-      lastAutoCtxRef.current = weatherCtx;
-      doAutoSwitch();
-    }
-
-    // Re-check every 15 min for time-of-day persona shifts
-    const id = setInterval(doAutoSwitch, 15 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [autoSwitchedMode, weatherCtx, goToPersona]);
 
   // ─── A4: Build live location from ctx (overrides mock temp/condition) ─────
   const liveLocation = useMemo(() => {
@@ -183,6 +156,35 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
       setTimeout(forceScrollToTop, 30);
     });
   }, [forceScrollToTop]);
+
+  // ─── A3: Auto-persona switching ────────────────────────────────────────
+  // Declared AFTER goToPersona to avoid the temporal dead zone.
+  // When autoSwitchedMode is on, suggests the most contextually relevant
+  // persona using time-of-day, day-of-week, and live weather signals.
+  // Fires once on each new weather load, then every 15 min for time shifts.
+  // Swiping sets autoSwitchedMode=false and stops all auto-switching.
+  const lastAutoCtxRef = useRef(null);
+
+  useEffect(() => {
+    if (!autoSwitchedMode || !weatherCtx) return;
+
+    const doAutoSwitch = () => {
+      const signals     = buildContextSignals(weatherCtx, new Date());
+      const suggestedId = suggestPersona(signals, PERSONAS);
+      const nextIdx     = PERSONAS.findIndex((p) => p.id === suggestedId);
+      if (nextIdx >= 0) goToPersona(nextIdx, 'auto');
+    };
+
+    // Fire once when a new weather ctx arrives
+    if (lastAutoCtxRef.current !== weatherCtx) {
+      lastAutoCtxRef.current = weatherCtx;
+      doAutoSwitch();
+    }
+
+    // Re-check every 15 min for time-of-day persona shifts
+    const id = setInterval(doAutoSwitch, 15 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [autoSwitchedMode, weatherCtx, goToPersona]);
 
   const handleNextPersona   = useCallback(() => goToPersona((p) => (p + 1) % PERSONAS.length, 'swipe'), [goToPersona]);
   const handlePrevPersona   = useCallback(() => goToPersona((p) => (p - 1 + PERSONAS.length) % PERSONAS.length, 'swipe'), [goToPersona]);
