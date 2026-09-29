@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CARD_CATALOG } from './catalog';
+import { buildContextSignals, getCardContextBoost } from './context';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 /** urgency ≥ this AND live data AND non-mock → pinned warning */
@@ -44,6 +45,8 @@ const LEARNED_WEIGHT = 1.0;
  */
 export function rankPersonaCards(personaId, ctx) {
   const isLiveData = ctx?.isLive === true;
+  // A3: Build context signals once for this call (time + weather)
+  const signals = buildContextSignals(ctx, new Date());
   const scored = [];
 
   for (const cardDef of CARD_CATALOG) {
@@ -78,15 +81,17 @@ export function rankPersonaCards(personaId, ctx) {
     const urgency    = computed.urgency ?? 0;
     const isWarning  = canWarn && urgency >= WARNING_THRESHOLD && isLiveData && !isMockCard;
 
-    // ── 5. A2 Ranking formula ────────────────────────────────────────────────
-    // score = affinity × (0.5 + 0.5 × urgency) × learnedWeight
+    // ── 5. A2 Ranking formula + A3 context boost ─────────────────────────────
+    // base: score = affinity × (0.5 + 0.5 × urgency) × learnedWeight
+    // final: finalScore = base × contextBoost(cardId, signals)
     //
-    // Properties of this formula:
-    //   • Affinity is the dominant factor — low-affinity cards rank low regardless of urgency
-    //   • At urgency=0: score = affinity × 0.5 × 1  (base rank)
-    //   • At urgency=1: score = affinity × 1.0 × 1  (double the base rank)
-    //   • Warning cards are already pinned above this; score only orders non-warnings
-    const score = affinity * (0.5 + 0.5 * urgency) * LEARNED_WEIGHT;
+    // contextBoost is in range [0.5, 1.6]:
+    //   > 1.0 → card is more relevant right now (boosted)
+    //   < 1.0 → card is less relevant right now (suppressed)
+    //   = 1.0 → neutral
+    const base  = affinity * (0.5 + 0.5 * urgency) * LEARNED_WEIGHT;
+    const boost = getCardContextBoost(cardDef.id, signals);
+    const score = base * boost;
 
     // ── 6. Build full card object (WhiteCard interface) ──────────────────────
     const card = {
@@ -106,9 +111,12 @@ export function rankPersonaCards(personaId, ctx) {
       urgency,
       affinity,
       learnedWeight: LEARNED_WEIGHT,
-      score,
+      base,          // A2 base score (before context boost)
+      contextBoost: boost,
+      score,         // final score = base × contextBoost
       isWarning,
-      // A5 explainability hook
+      // A3/A5 hooks
+      _signals: signals,
       _def: cardDef,
     };
 

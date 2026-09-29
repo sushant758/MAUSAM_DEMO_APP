@@ -4,6 +4,7 @@ import { PERSONAS, MOCK_LOCATIONS } from '../data/personaData';
 import { fetchWeatherCtx } from '../services/weather';
 import { heatIndexC, outdoorComfort } from '../lib/indices';
 import { rankPersonaCards } from '../engine/ranker';
+import { buildContextSignals, suggestPersona } from '../engine/context';
 import Header from './Header';
 import HeroCard from './HeroCard';
 import WhiteCard from './WhiteCard';
@@ -112,6 +113,34 @@ export default function HomeScreen({ user, onLogout, isPhoneFrame, onTogglePhone
     () => rankPersonaCards(activePersona.id, weatherCtx),
     [activePersona.id, weatherCtx]
   );
+
+  // ─── A3: Auto-persona switching ───────────────────────────────────────────
+  // When autoSwitchedMode is on, suggests the most contextually relevant
+  // persona using time-of-day, day-of-week, and live weather signals.
+  // Fires once on weather load, then every 15 min for time-of-day shifts.
+  // Swiping sets autoSwitchedMode=false and stops all auto-switching.
+  const lastAutoCtxRef = useRef(null);
+
+  useEffect(() => {
+    if (!autoSwitchedMode || !weatherCtx) return;
+
+    const doAutoSwitch = () => {
+      const signals    = buildContextSignals(weatherCtx, new Date());
+      const suggestedId = suggestPersona(signals, PERSONAS);
+      const nextIdx    = PERSONAS.findIndex((p) => p.id === suggestedId);
+      if (nextIdx >= 0) goToPersona(nextIdx, 'auto');
+    };
+
+    // Fire once when a new weather ctx arrives
+    if (lastAutoCtxRef.current !== weatherCtx) {
+      lastAutoCtxRef.current = weatherCtx;
+      doAutoSwitch();
+    }
+
+    // Re-check every 15 min for time-of-day persona shifts
+    const id = setInterval(doAutoSwitch, 15 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [autoSwitchedMode, weatherCtx, goToPersona]);
 
   // ─── A4: Build live location from ctx (overrides mock temp/condition) ─────
   const liveLocation = useMemo(() => {
