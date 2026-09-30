@@ -87,13 +87,22 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
     ? card.tag.split(' • ')[0].trim()
     : 'Open-Meteo';
 
-  // Note under the chip
-  const chipNote = isFormula
+  // Note under the chip (A7: translate known mock notes; formula notes stay English per spec)
+  const rawNote = isFormula
     ? card.tag.replace(/^Formula:\s*/, '').trim()
     : isAlwaysMock
     ? card.tag.replace(/^Mock data •?\s*/i, '').trim() || undefined
     : undefined;
 
+  // Map raw English note → i18n key (only for known mock notes)
+  const CHIP_NOTE_KEYS = {
+    'No pollen feed for India in prototype': 'chip.note.pollen',
+    'IMD warning feed planned':              'chip.note.imd',
+    'Tide feed planned (INCOIS)':            'chip.note.tide',
+  };
+  const chipNote = rawNote
+    ? (CHIP_NOTE_KEYS[rawNote] ? t(CHIP_NOTE_KEYS[rawNote]) : rawNote)
+    : undefined;
 
   return (
     <motion.div

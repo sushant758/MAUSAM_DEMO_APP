@@ -69,6 +69,12 @@ export const STRINGS = {
     'chip.mock':        'Mock data',
     'chip.min_ago.one': '< 1 min ago',
     'chip.min_ago':     '{n} min ago',
+    // chip sub-notes (the text after "Mock data • " in card.tag)
+    'chip.note.pollen': 'No pollen feed for India in prototype',
+    'chip.note.imd':    'IMD warning feed planned',
+    'chip.note.tide':   'Tide feed planned (INCOIS)',
+    // sunrise_sunset statusText prefix
+    'chip.sunset':      'Sunset',
 
     // ── Persona names ─────────────────────────────────────────────────────────
     'persona.health':       'Health-Conscious',
@@ -281,6 +287,12 @@ export const STRINGS = {
     'chip.mock':        'नमूना डेटा (Mock)',
     'chip.min_ago.one': '< 1 मिनट पहले',
     'chip.min_ago':     '{n} मिनट पहले',
+    // chip sub-notes
+    'chip.note.pollen': 'इस प्रोटोटाइप में भारत के लिए पराग फ़ीड उपलब्ध नहीं है',
+    'chip.note.imd':    'IMD चेतावनी फ़ीड योजनाबद्ध',
+    'chip.note.tide':   'ज्वार फ़ीड योजनाबद्ध (INCOIS)',
+    // sunrise_sunset statusText prefix
+    'chip.sunset':      'सूर्यास्त',
 
     // ── Persona names ─────────────────────────────────────────────────────────
     'persona.health':       'स्वास्थ्य-सचेत',
@@ -332,7 +344,7 @@ export const STRINGS = {
     'body.storm':       'आज के Open-Meteo पूर्वानुमान में तूफान मिला (समय: {window})।\nयह पूर्वानुमान है — वास्तविक समय भिन्न हो सकता है। आधिकारिक चेतावनी के लिए imd.gov.in देखें।',
     'body.imd.storm':   'मौसम कोड से तूफान की संभावना दिखती है। IMD आधिकारिक फ़ीड इस प्रोटोटाइप में नहीं है — imd.gov.in देखें।',
     'body.imd.clear':   'कोई सक्रिय IMD गंभीर मौसम चेतावनी नहीं। IMD आधिकारिक फ़ीड इस प्रोटोटाइप में अभी शामिल नहीं है।',
-    'body.sunrise':     'सूर्योदय: {rise}  •  सूर्यास्त: {set}।\nसुनहरा घंटा: लगभग {goldenStart} – {set}।\nसबसे अच्छी रोशनी: {rise} – {riseEnd} AM और शाम 5 बजे – {set}।',
+    'body.sunrise':     'सूर्योदय: {rise}  •  सूर्यास्त: {set}।\nसुनहरा घंटा: लगभग {goldenStart} – {set}।\nसबसे अच्छी रोशनी: {rise} – {riseEnd} सुबह और शाम 5 बजे – {set}।',
     'body.soil.dry':    'मिट्टी की नमी (0–1 cm गहराई): {m} m³/m³ (सूखी)।\nसिंचाई की सलाह दी जाती है।\n\nफसल-विशिष्ट मार्गदर्शन के लिए ग्रामीण कृषि मौसम सेवा देखें।',
     'body.soil.wet':    'मिट्टी की नमी (0–1 cm गहराई): {m} m³/m³ (गीली)।\nसिंचाई न करें — मिट्टी पहले से संतृप्त है।\n\nफसल-विशिष्ट मार्गदर्शन के लिए ग्रामीण कृषि मौसम सेवा देखें।',
     'body.soil.moist':  'मिट्टी की नमी (0–1 cm गहराई): {m} m³/m³ (नम)।\nअधिकांश फसलों के लिए पर्याप्त।\n\nफसल-विशिष्ट मार्गदर्शन के लिए ग्रामीण कृषि मौसम सेवा देखें।',

@@ -254,6 +254,9 @@ export function getTranslatedStatusText(card, lang, t) {
     case 'pollen':        return t('level.na');
     case 'tide':          return t('level.mock_est');
     case 'destination_forecast': return t('level.no_dest');
+    case 'sunrise_sunset':
+      // "Sunset 18:38" → "सूर्यास्त 18:38"
+      return stat.replace(/^Sunset\s*/, t('chip.sunset') + ' ');
     case 'frost_alert':
       // catalog returns '⚠️ Frost Risk' or 'No Frost Risk'
       return stat.startsWith('⚠️') ? t('level.frost_risk') : t('level.no_frost');

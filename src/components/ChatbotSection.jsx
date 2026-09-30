@@ -241,7 +241,9 @@ export default function ChatbotSection({
                     : 'bg-slate-100/90 text-slate-800 rounded-bl-none border border-slate-200/60'
                 }`}
               >
-                <p>{msg.text}</p>
+                {/* A7: welcome greeting follows active language live */}
+                <p>{msg.id === 'welcome-shared' ? t('chat.greeting') : msg.text}</p>
+
                 <div className="flex items-center justify-between gap-3 mt-1 text-[9px] font-medium text-slate-400">
                   <span className={msg.sender === 'user' ? 'text-amber-100' : 'text-slate-400'}>
                     {msg.time}
