@@ -56,6 +56,8 @@ export default function HomeScreen({
   // A1: settings from onboarding / SettingsSheet
   initialLocation, initialPersonaId, initialTempUnit, initialAutoPersona,
   onSettingsChange,
+  // A8: demo override ctx (null = use real API data)
+  demoCtx = null,
 }) {
   // A1: initialPersonaId from onboarding sets the starting persona
   const initPersonaIdx = Math.max(0, PERSONAS.findIndex((p) => p.id === (initialPersonaId ?? 'health')));
@@ -116,22 +118,25 @@ export default function HomeScreen({
     });
     return () => { cancelled = true; };
   }, [currentLocation.id]);
+  // A8: activeCtx = demoCtx if a demo scenario is active, else real API data
+  const activeCtx       = demoCtx ?? weatherCtx;
+  const isActiveLoading = demoCtx ? false : wxLoading;
 
   // ─── A2: Rank cards for the active persona ────────────────────────────────
   // Memoized — recomputes only when persona or weather context changes
   const rankedCards = useMemo(
-    () => rankPersonaCards(activePersona.id, weatherCtx),
-    [activePersona.id, weatherCtx]
+    () => rankPersonaCards(activePersona.id, activeCtx),
+    [activePersona.id, activeCtx]
   );
 
 
   // ─── A4: Build live location from ctx (overrides mock temp/condition) ─────
   const liveLocation = useMemo(() => {
-    if (!weatherCtx) return currentLocation;
-    const tempC = Math.round(weatherCtx.weather.temp);
+    if (!activeCtx) return currentLocation;
+    const tempC = Math.round(activeCtx.weather.temp);
     const tempF = Math.round(tempC * 9 / 5 + 32);
-    return { ...currentLocation, tempC, tempF, condition: weatherCtx.weather.condition };
-  }, [weatherCtx, currentLocation]);
+    return { ...currentLocation, tempC, tempF, condition: activeCtx.weather.condition };
+  }, [activeCtx, currentLocation]);
 
   // ─── Scroll helpers ────────────────────────────────────────────────────────
   const forceScrollToTop = useCallback(() => {
@@ -232,12 +237,12 @@ export default function HomeScreen({
 
   // ─── A2: Live hero score = OCI from real ctx ───────────────────────────────
   const heroPersona = useMemo(() => {
-    if (!weatherCtx) return activePersona;
-    const { weather, uv, aqi, daily } = weatherCtx;
+    if (!activeCtx) return activePersona;
+    const { weather, uv, aqi, daily } = activeCtx;
     const hi  = heatIndexC(weather.temp, weather.humidity);
     const oci = outdoorComfort({ hi, aqi: aqi.us_aqi, uv: uv.current, rainProb: daily.precipProbMax?.[0] ?? 10 });
     return { ...activePersona, hero: { ...activePersona.hero, score: oci, scoreLabel: 'Comfort' } };
-  }, [activePersona, weatherCtx]);
+  }, [activePersona, activeCtx]);
 
   // ─── A2: Check if any warning card is active ──────────────────────────────
   // Belt-and-suspenders: banner requires BOTH live data AND at least one
@@ -245,8 +250,8 @@ export default function HomeScreen({
   // The ranker already blocks isWarning without live data, but we guard here
   // too so the banner is structurally impossible without real API data.
   const hasWarning = useMemo(
-    () => weatherCtx?.isLive === true && rankedCards.some((c) => c.isWarning),
-    [rankedCards, weatherCtx]
+    () => activeCtx?.isLive === true && rankedCards.some((c) => c.isWarning),
+    [rankedCards, activeCtx]
   );
 
   // ─── A5: WhySheet handlers ────────────────────────────────────────────────
@@ -279,19 +284,19 @@ export default function HomeScreen({
       <main className="w-full px-3 sm:px-4 flex flex-col flex-1">
 
         {/* A4: Live/Mock status strip */}
-        {!wxLoading && (
+        {!isActiveLoading && (
           <div className={`mx-1 mb-1 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[11px] font-semibold ${
-            weatherCtx?.isLive
+            activeCtx?.isLive
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : 'bg-slate-100 text-slate-500 border border-slate-200'
           }`}>
-            <span className={`w-2 h-2 rounded-full shrink-0 ${weatherCtx?.isLive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-            {weatherCtx?.isLive
+            <span className={`w-2 h-2 rounded-full shrink-0 ${activeCtx?.isLive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            {activeCtx?.isLive
               ? `Live · Open-Meteo · ${liveLocation.name}`
               : 'Showing sample data — offline or location unsupported'}
           </div>
         )}
-        {wxLoading && (
+        {isActiveLoading && (
           <div className="mx-1 mb-1 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-400 font-semibold animate-pulse">
             Fetching live weather…
           </div>
@@ -300,7 +305,7 @@ export default function HomeScreen({
         {/* A2: Warning banner when a card has urgency ≥ 0.75 */}
         <AnimatePresence>
           {/* Banner: only when live data AND actual isWarning cards exist */}
-          {hasWarning && !wxLoading && (
+          {hasWarning && !isActiveLoading && (
             <motion.div
               key="warning-banner"
               initial={{ opacity: 0, y: -8 }}
@@ -364,7 +369,7 @@ export default function HomeScreen({
         {/* A2: Ranked info cards */}
         <div className="w-full my-3 flex flex-col gap-3">
           <AnimatePresence mode="wait">
-            {wxLoading ? (
+            {isActiveLoading ? (
               <motion.div
                 key="skeleton"
                 initial={{ opacity: 0 }}
@@ -383,7 +388,7 @@ export default function HomeScreen({
               >
                 {rankedCards.map((card, idx) => {
                   // For the SourceChip: a card is "live" when it has a non-mock tag and we have live ctx
-                  const cardIsLive = (weatherCtx?.isLive ?? false)
+                  const cardIsLive = (activeCtx?.isLive ?? false)
                     && !card.tag?.toLowerCase().startsWith('mock');
                   return (
                     <WhiteCard
@@ -391,7 +396,7 @@ export default function HomeScreen({
                       card={card}
                       index={idx}
                       isLive={cardIsLive}
-                      fetchedAt={weatherCtx?.fetchedAt}
+                      fetchedAt={activeCtx?.fetchedAt}
                       onWhyClick={() => handleWhyClick(card)}
                     />
                   );
@@ -407,7 +412,7 @@ export default function HomeScreen({
           currentLocation={liveLocation}
           currentTempC={liveLocation.tempC}
           tempUnit={tempUnit}
-          weatherCtx={weatherCtx}
+          weatherCtx={activeCtx}
           sharedMessages={sharedMessages}
           setSharedMessages={setSharedMessages}
           sharedDraftMap={sharedDraftMap}
@@ -420,7 +425,7 @@ export default function HomeScreen({
         onClose={handleWhyClose}
         card={whyCard}
         personaId={activePersona.id}
-        ctx={weatherCtx}
+        ctx={activeCtx}
         votes={cardVotes}
         onVote={handleVote}
       />

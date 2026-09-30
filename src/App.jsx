@@ -3,6 +3,7 @@ import PhoneFrame from './components/PhoneFrame';
 import AuthScreen from './components/AuthScreen';
 import OnboardingFlow from './components/OnboardingFlow';
 import HomeScreen from './components/HomeScreen';
+import DemoControls, { DEMO_SCENARIOS } from './components/DemoControls';
 import { MOCK_LOCATIONS } from './data/personaData';
 import { LanguageProvider } from './i18n/LanguageContext';
 
@@ -18,6 +19,12 @@ function readLS(key, fallback) {
 function writeLS(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
+
+// A8: Show demo controls when ?demo=1 is in the URL (or in dev mode)
+const IS_DEMO_MODE =
+  typeof window !== 'undefined' &&
+  (new URLSearchParams(window.location.search).get('demo') === '1' ||
+   import.meta.env.DEV);
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -37,6 +44,21 @@ export default function App() {
   }));
 
   const [isPhoneFrame, setIsPhoneFrame] = useState(true);
+
+  // A8: Demo override — synthetic weather ctx injected by DemoControls
+  const [demoCtx, setDemoCtx]     = useState(null);
+  const [demoId, setDemoId]       = useState(null);   // active scenario id
+
+  const handleDemoOverride = useCallback((ctx) => {
+    if (ctx) {
+      const match = DEMO_SCENARIOS.find((s) => s.ctx.locationName === ctx.locationName);
+      setDemoCtx(ctx);
+      setDemoId(match?.id ?? null);
+    } else {
+      setDemoCtx(null);
+      setDemoId(null);
+    }
+  }, []);
 
   // ── Auth handlers ────────────────────────────────────────────────────────
   const handleLoginSuccess = useCallback((userData) => {
@@ -106,8 +128,18 @@ export default function App() {
             initialTempUnit={settings.tempUnit}
             initialAutoPersona={settings.autoPersona}
             onSettingsChange={updateSettings}
+            // A8: inject synthetic weather ctx from demo controls (null = use real API data)
+            demoCtx={demoCtx}
           />
         </PhoneFrame>
+      )}
+
+      {/* A8: Demo scenario panel — only visible in dev mode or ?demo=1 */}
+      {screen === 'home' && IS_DEMO_MODE && (
+        <DemoControls
+          onOverride={handleDemoOverride}
+          activeId={demoId}
+        />
       )}
     </div>
   </LanguageProvider>
