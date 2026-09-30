@@ -198,20 +198,47 @@ export default function AuthScreen({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Quick Demo Preset Button */}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col items-center">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            Or Instant Prototype Demo
+        {/* ── DEMO LOGIN — Most eye-catching CTA ──────────────────────────── */}
+        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {/* Skip the form */}
+            ✨ Judges / Reviewers
           </span>
-          <button
+
+          {/* Pulsing shimmer keyframe via inline style */}
+          <style>{`
+            @keyframes shimmer-slide {
+              0%   { background-position: 200% center; }
+              100% { background-position: -200% center; }
+            }
+            .demo-btn-shimmer {
+              background: linear-gradient(90deg,
+                #7DD3FC 0%, #38BDF8 30%, #BAE6FD 50%, #38BDF8 70%, #7DD3FC 100%);
+              background-size: 200% auto;
+              animation: shimmer-slide 2.8s linear infinite;
+            }
+          `}</style>
+
+          <motion.button
             type="button"
             onClick={handleQuickDemo}
-            className="w-full py-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 transition-all flex items-center justify-center gap-1.5"
+            id="demo-login-btn"
+            whileTap={{ scale: 0.97 }}
+            animate={{ boxShadow: [
+              '0 0 0 0 rgba(56,189,248,0.5)',
+              '0 0 0 10px rgba(56,189,248,0)',
+              '0 0 0 0 rgba(56,189,248,0)',
+            ]}}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+            className="demo-btn-shimmer w-full py-4 rounded-2xl font-extrabold text-sm text-navy-900 flex items-center justify-center gap-2 shadow-[0_4px_24px_rgba(56,189,248,0.55)] border-2 border-sky-200"
+            style={{ color: '#0c2340' }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Instant Demo Login (Skip Form)</span>
-          </button>
+            <Sparkles className="w-4 h-4 text-sky-700" />
+            <span>⚡ Instant Demo Login (Skip Form)</span>
+          </motion.button>
+          <p className="text-[10px] text-slate-400 text-center">Tap above — no form needed for demo</p>
         </div>
+
       </motion.div>
 
       {/* Footer Branding */}

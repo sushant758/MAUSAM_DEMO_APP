@@ -78,12 +78,13 @@ export default function OnboardingFlow({ user, onComplete }) {
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl shadow-black/40 overflow-hidden"
+        className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl shadow-black/40 overflow-hidden flex flex-col"
+        style={{ maxHeight: 'calc(100dvh - 64px)' }}
       >
         {/* Amber top accent */}
-        <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
+        <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 shrink-0" />
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
           {/* A7: language toggle in onboarding */}
           <div className="flex justify-end mb-1">
             <button
@@ -131,7 +132,8 @@ export default function OnboardingFlow({ user, onComplete }) {
             {/* ── Step 1: Personas (MULTI-SELECT) ─────────────────────────── */}
             {step === 1 && (
               <StepPanel key="persona">
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                {/* Grid scrolls; button is in sticky footer outside this area */}
+                <div className="grid grid-cols-2 gap-2 mb-3 max-h-56 overflow-y-auto pr-0.5">
                   {PERSONAS.map((p) => {
                     const Icon = PERSONA_ICONS[p.id] || Activity;
                     const isSelected = personaIds.includes(p.id);
@@ -167,12 +169,12 @@ export default function OnboardingFlow({ user, onComplete }) {
                     );
                   })}
                 </div>
-                <p className="text-center text-[11px] text-slate-400 mb-3">
+                <p className="text-center text-[11px] text-slate-400">
                   {personaIds.length} {lang === 'en' ? 'selected' : 'चुने गए'}
                 </p>
-                <PrimaryButton onClick={next}>{t('ob.continue')} <ChevronRight className="w-4 h-4" /></PrimaryButton>
               </StepPanel>
             )}
+
 
             {/* ── Step 2: Preferences ──────────────────────────────────────── */}
             {step === 2 && (
@@ -235,6 +237,26 @@ export default function OnboardingFlow({ user, onComplete }) {
             )}
           </AnimatePresence>
         </div>
+
+        {/* A2: Sticky footer — visible for step 1 (persona selection) */}
+        {step === 1 && (
+          <div className="shrink-0 px-6 pb-6 pt-2 border-t border-slate-100 bg-white">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={next}
+              disabled={personaIds.length === 0}
+              id="ob-persona-continue"
+              className={`w-full font-bold text-sm flex items-center justify-center gap-2 rounded-2xl shadow-lg transition-all
+                ${personaIds.length === 0
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed py-3.5'
+                  : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 text-white shadow-orange-500/30 hover:shadow-orange-500/50 py-3.5 min-h-[52px]'
+                }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+              {lang === 'hi' ? 'आगे बढ़ें' : 'Continue'}
+            </motion.button>
+          </div>
+        )}
       </motion.div>
 
       {/* Skip */}

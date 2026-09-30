@@ -73,6 +73,19 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
   const gaugeValue  = card.gaugeValue;
   const statusColor = card.statusColor;
 
+  // B6: "Because" reason — derive from urgency + context boost for top cards
+  const getBecauseReason = () => {
+    if (!card.urgency && !card.contextBoost) return null;
+    const urgency = card.urgency ?? 0;
+    const boost   = card.contextBoost ?? 1;
+    if (card.isWarning) return lang === 'hi' ? '⚠️ अत्यंत जरूरी — तत्काल कार्रवाई जरूरी' : '⚠️ Critical — action needed now';
+    if (urgency >= 0.7)  return lang === 'hi' ? 'उच्च स्कोर — आज आपके लिए सबसे प्रासंगिक' : 'High urgency — most relevant for you today';
+    if (boost > 1.2)     return lang === 'hi' ? 'आज की परिस्थिति से मेल खाता है' : 'Matches current conditions';
+    if (urgency >= 0.4)  return lang === 'hi' ? 'मध्यम महत्व — आज नज़र रखने योग्य' : 'Moderate priority — worth watching today';
+    return lang === 'hi' ? 'आपके persona पर आधारित' : 'Relevant to your persona';
+  };
+  const becauseText = index <= 1 ? getBecauseReason() : null;
+
   // ── SourceChip logic ────────────────────────────────────────────────────────
   // "Mock data" prefix in card.tag → always-mock card (tide, traffic, pollen, etc.)
   // "Formula:" prefix → formula-based card (green if live ctx was used)
@@ -83,7 +96,10 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
   const showLiveChip = isLive && !isAlwaysMock;
 
   // Provider: first segment before " • " (e.g. "Open-Meteo Marine API", "Open-Meteo")
-  const chipProvider = (!isAlwaysMock && !isFormula && card.tag)
+  // B7: gauge/OCI cards always show "Formula" as provider
+  const chipProvider = isFormula
+    ? 'Formula'
+    : (!isAlwaysMock && card.tag)
     ? card.tag.split(' • ')[0].trim()
     : 'Open-Meteo';
 
@@ -149,6 +165,16 @@ export default function WhiteCard({ card, index = 0, isLive = false, fetchedAt, 
           )}
         </div>
       </div>
+
+      {/* B6: "Because" reason chip — only on top 2 ranked cards */}
+      {becauseText && (
+        <div className="mt-2 flex">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-600 leading-tight">
+            <Sparkles className="w-2.5 h-2.5 shrink-0" />
+            {lang === 'hi' ? 'क्योंकि: ' : 'Because: '}{becauseText}
+          </span>
+        </div>
+      )}
 
       {/* ── Zone 2: Body — full width below header ─────────────────────────── */}
       {subtext && (

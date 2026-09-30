@@ -12,12 +12,12 @@ export const PERSONAS = [
     title: 'Wellness & Health Weather',
     hero: {
       headline: 'Best Air & UV Window: 7:00 AM – 9:30 AM',
-      score: 72,          // Outdoor Comfort Index 0-100 (formula: heat+AQI+UV+rain)
+      score: 72,
       scoreLabel: 'Comfort',
       icon: 'Heart',
-      bgGradient: 'from-amber-500 via-orange-500 to-yellow-400',
-      badgeTextColor: 'text-orange-600',
-      shadowColor: 'shadow-orange-500/25',
+      bgGradient: 'from-[#2DD4BF] via-[#34D399] to-[#6EE7B7]',
+      badgeTextColor: 'text-teal-600',
+      shadowColor: 'shadow-teal-500/25',
     },
     cards: [
       {
@@ -98,7 +98,7 @@ export const PERSONAS = [
       score: 85,
       scoreLabel: 'Run Comfort',
       icon: 'Zap',
-      bgGradient: 'from-orange-500 via-amber-500 to-yellow-400',
+      bgGradient: 'from-[#FB923C] via-[#F97316] to-[#FDBA74]',
       badgeTextColor: 'text-orange-600',
       shadowColor: 'shadow-orange-500/25',
     },
@@ -169,9 +169,9 @@ export const PERSONAS = [
       score: 88,
       scoreLabel: 'Sea Score',
       icon: 'Globe',
-      bgGradient: 'from-cyan-500 via-teal-400 to-emerald-200',
+      bgGradient: 'from-[#22D3EE] via-[#0EA5E9] to-[#38BDF8]',
       badgeTextColor: 'text-cyan-600',
-      shadowColor: 'shadow-cyan-500/25',
+      shadowColor: 'shadow-sky-500/25',
     },
     cards: [
       {
@@ -242,9 +242,9 @@ export const PERSONAS = [
       score: 80,
       scoreLabel: 'Travel Safety',
       icon: 'Compass',
-      bgGradient: 'from-teal-500 via-emerald-400 to-cyan-200',
-      badgeTextColor: 'text-teal-600',
-      shadowColor: 'shadow-teal-500/25',
+      bgGradient: 'from-[#818CF8] via-[#6366F1] to-[#A5B4FC]',
+      badgeTextColor: 'text-indigo-600',
+      shadowColor: 'shadow-indigo-500/25',
     },
     cards: [
       {
@@ -313,9 +313,9 @@ export const PERSONAS = [
       score: 90,
       scoreLabel: 'Safe Window',
       icon: 'Heart',
-      bgGradient: 'from-sky-500 via-sky-300 to-blue-100',
-      badgeTextColor: 'text-sky-600',
-      shadowColor: 'shadow-sky-500/25',
+      bgGradient: 'from-[#F9A8D4] via-[#FB7185] to-[#FDA4AF]',
+      badgeTextColor: 'text-rose-600',
+      shadowColor: 'shadow-rose-400/25',
     },
     cards: [
       {
@@ -385,9 +385,9 @@ export const PERSONAS = [
       score: 86,
       scoreLabel: 'Field Score',
       icon: 'Wheat',
-      bgGradient: 'from-emerald-500 via-lime-400 to-yellow-300',
-      badgeTextColor: 'text-emerald-700',
-      shadowColor: 'shadow-emerald-500/25',
+      bgGradient: 'from-[#84CC16] via-[#65A30D] to-[#BEF264]',
+      badgeTextColor: 'text-lime-700',
+      shadowColor: 'shadow-lime-500/25',
     },
     cards: [
       {
@@ -456,9 +456,9 @@ export const PERSONAS = [
       score: 82,
       scoreLabel: 'Commute Score',
       icon: 'Bus',
-      bgGradient: 'from-sky-500 via-indigo-400 to-slate-200',
-      badgeTextColor: 'text-indigo-600',
-      shadowColor: 'shadow-indigo-500/25',
+      bgGradient: 'from-[#60A5FA] via-[#3B82F6] to-[#94A3B8]',
+      badgeTextColor: 'text-blue-600',
+      shadowColor: 'shadow-blue-500/25',
     },
     cards: [
       {
@@ -528,9 +528,9 @@ export const PERSONAS = [
       score: 88,
       scoreLabel: 'Event Score',
       icon: 'Sparkles',
-      bgGradient: 'from-lime-500 via-emerald-400 to-amber-200',
-      badgeTextColor: 'text-emerald-700',
-      shadowColor: 'shadow-emerald-500/25',
+      bgGradient: 'from-[#C084FC] via-[#A855F7] to-[#E9D5FF]',
+      badgeTextColor: 'text-purple-600',
+      shadowColor: 'shadow-purple-500/25',
     },
     cards: [
       {

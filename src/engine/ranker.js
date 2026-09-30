@@ -15,6 +15,7 @@
 
 import { CARD_CATALOG } from './catalog';
 import { buildContextSignals, getCardContextBoost } from './context';
+import { loadWeights } from '../lib/cardWeights';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 /** urgency ≥ this AND live data AND non-mock → pinned warning */
@@ -29,10 +30,10 @@ const MIN_AFFINITY_THRESHOLD = 0.35;
 
 /**
  * Multiplier applied to every card's score.
- * Phase A8 will load per-card weights from user-feedback data.
- * Until then, learnedWeight = 1 for all cards.
+ * B1: Loaded from localStorage (set via WhySheet thumbs up/down).
+ * Default = 1.0 when no preference recorded; clamped to [0.5, 1.5].
  */
-const LEARNED_WEIGHT = 1.0;
+const LEARNED_WEIGHT = 1.0; // default — actual weights loaded per-card at runtime
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,8 @@ export function rankPersonaCards(personaId, ctx) {
   const isLiveData = ctx?.isLive === true;
   // A3: Build context signals once for this call (time + weather)
   const signals = buildContextSignals(ctx, new Date());
+  // B1: Load all stored card weights once per ranking call
+  const storedWeights = loadWeights();
   const scored = [];
 
   for (const cardDef of CARD_CATALOG) {
@@ -89,7 +92,9 @@ export function rankPersonaCards(personaId, ctx) {
     //   > 1.0 → card is more relevant right now (boosted)
     //   < 1.0 → card is less relevant right now (suppressed)
     //   = 1.0 → neutral
-    const base  = affinity * (0.5 + 0.5 * urgency) * LEARNED_WEIGHT;
+    // B1: Use per-card learned weight from localStorage (default 1.0)
+    const learnedWeight = storedWeights[cardDef.id] ?? LEARNED_WEIGHT;
+    const base  = affinity * (0.5 + 0.5 * urgency) * learnedWeight;
     const boost = getCardContextBoost(cardDef.id, signals);
     const score = base * boost;
 
@@ -110,8 +115,8 @@ export function rankPersonaCards(personaId, ctx) {
       // Ranking metadata (exposed to WhySheet for A5)
       urgency,
       affinity,
-      learnedWeight: LEARNED_WEIGHT,
-      base,          // A2 base score (before context boost)
+      learnedWeight,
+      base,
       contextBoost: boost,
       score,         // final score = base × contextBoost
       isWarning,

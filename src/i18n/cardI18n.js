@@ -16,6 +16,25 @@ function ex(str, re, fallback = '—') {
   return str?.match(re)?.[1] ?? fallback;
 }
 
+// ── B7: 12-hour time formatter ────────────────────────────────────────────────
+// Accepts "HH:MM" or ISO-8601 datetime strings.
+// lang='hi' uses सुबह/शाम instead of AM/PM.
+export function to12h(timeStr, lang = 'en') {
+  if (!timeStr || timeStr === '—') return timeStr;
+  // Handle ISO 8601: "2025-06-01T06:12" → extract "06:12"
+  const hhmm = timeStr.includes('T') ? timeStr.split('T')[1]?.substring(0, 5) : timeStr.substring(0, 5);
+  if (!hhmm || !hhmm.includes(':')) return timeStr;
+  const [hStr, mStr] = hhmm.split(':');
+  const h24 = parseInt(hStr, 10);
+  const m   = mStr ?? '00';
+  const isPM = h24 >= 12;
+  const h12  = h24 % 12 || 12;
+  if (lang === 'hi') {
+    return `${h12}:${m} ${isPM ? 'शाम' : 'सुबह'}`;
+  }
+  return `${h12}:${m} ${isPM ? 'PM' : 'AM'}`;
+}
+
 // ── Translate level words (per spec) ─────────────────────────────────────────
 export function translateLevel(label, t) {
   if (!label) return label;
@@ -151,10 +170,15 @@ export function getTranslatedCardBody(card, lang, t) {
     }
 
     case 'sunrise_sunset': {
-      const rise       = ex(sub, /Sunrise: (.+?)  •/);
-      const set        = ex(sub, /Sunset: (.+?)\./);
-      const goldenStart= ex(sub, /approx\. (.+?) –/);
-      const riseEnd    = ex(sub, /– (.+?) AM/);
+      const rise24      = ex(sub, /Sunrise: (.+?)  •/);
+      const set24       = ex(sub, /Sunset: (.+?)\./);
+      const goldenStart24 = ex(sub, /approx\. (.+?) –/);
+      const riseEnd24   = ex(sub, /– (.+?) AM/);
+      // B7: convert to 12h format (localized)
+      const rise       = to12h(rise24, lang);
+      const set        = to12h(set24, lang);
+      const goldenStart= to12h(goldenStart24, lang);
+      const riseEnd    = to12h(riseEnd24, lang);
       return fill('body.sunrise', { rise, set, goldenStart, riseEnd });
     }
 
@@ -254,9 +278,14 @@ export function getTranslatedStatusText(card, lang, t) {
     case 'pollen':        return t('level.na');
     case 'tide':          return t('level.mock_est');
     case 'destination_forecast': return t('level.no_dest');
-    case 'sunrise_sunset':
-      // "Sunset 18:38" → "सूर्यास्त 18:38"
-      return stat.replace(/^Sunset\s*/, t('chip.sunset') + ' ');
+    case 'sunrise_sunset': {
+      // "Sunset 18:38" → "सूर्यास्त 6:38 शाम" (hi) / "Sunset 6:38 PM" (en)
+      const time24 = stat.replace(/^Sunset\s*/, '').trim();
+      const time12 = to12h(time24, lang);
+      if (lang === 'hi') return `${t('chip.sunset')} ${time12}`;
+      return `Sunset ${time12}`;
+    }
+
     case 'frost_alert':
       // catalog returns '⚠️ Frost Risk' or 'No Frost Risk'
       return stat.startsWith('⚠️') ? t('level.frost_risk') : t('level.no_frost');

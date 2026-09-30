@@ -9,10 +9,11 @@ import Header from './Header';
 import HeroCard from './HeroCard';
 import WhiteCard from './WhiteCard';
 import WhySheet from './WhySheet';
-import ChatbotSection from './ChatbotSection';
 import LocationModal from './LocationModal';
 import SettingsSheet from './SettingsSheet';
+import FloatingChatbot, { AskMausamMitraCard } from './FloatingChatbot';
 import { useLanguage } from '../i18n/LanguageContext';
+import { updateWeight, resetWeights } from '../lib/cardWeights';
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const LS_UNIT = 'mausam.tempUnit';
@@ -88,10 +89,16 @@ export default function HomeScreen({
   // A5: WhySheet state + card votes (no backend — stored in React state)
   const [whyCard, setWhyCard] = useState(null);
   const [cardVotes, setCardVotes] = useState({});
+  // A4: chatbot sheet open state (used to hide FAB when other sheets are open)
+  const [chatOpen, setChatOpen] = useState(false);
 
   const handleVote = useCallback((cardId, vote) => {
     setCardVotes((prev) => ({ ...prev, [cardId]: vote }));
+    // B1: persist vote as learned weight delta (applies on next render/refresh)
+    if (vote === 'up')   updateWeight(cardId, +0.1);
+    if (vote === 'down') updateWeight(cardId, -0.1);
   }, []);
+
 
   // F9: shared chat
   const [sharedMessages, setSharedMessages] = useState([]);
@@ -406,19 +413,25 @@ export default function HomeScreen({
           </AnimatePresence>
         </div>
 
-        {/* F9: Shared assistant */}
-        <ChatbotSection
-          persona={activePersona}
-          currentLocation={liveLocation}
-          currentTempC={liveLocation.tempC}
-          tempUnit={tempUnit}
-          weatherCtx={activeCtx}
-          sharedMessages={sharedMessages}
-          setSharedMessages={setSharedMessages}
-          sharedDraftMap={sharedDraftMap}
-          setSharedDraftMap={setSharedDraftMap}
-        />
+        {/* A4: "Ask Mausam Mitra" card at bottom of feed */}
+        <AskMausamMitraCard onOpen={() => setChatOpen(true)} />
       </main>
+
+      {/* A4: Floating chatbot FAB + bottom sheet */}
+      <FloatingChatbot
+        persona={activePersona}
+        currentLocation={liveLocation}
+        currentTempC={liveLocation.tempC}
+        tempUnit={tempUnit}
+        weatherCtx={activeCtx}
+        sharedMessages={sharedMessages}
+        setSharedMessages={setSharedMessages}
+        sharedDraftMap={sharedDraftMap}
+        setSharedDraftMap={setSharedDraftMap}
+        hidden={!!whyCard || isSettingsOpen || isLocationModalOpen}
+        onOpenChange={setChatOpen}
+        isOpen={chatOpen}
+      />
 
       <WhySheet
         isOpen={!!whyCard}

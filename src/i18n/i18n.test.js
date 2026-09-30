@@ -58,10 +58,11 @@ describe('STRINGS.hi — spot checks', () => {
   it('banner.undo contains Devanagari (पूर्ववत)', () => {
     expect(/[\u0900-\u097F]/.test(STRINGS.hi['banner.undo'])).toBe(true);
   });
-  it('body.sunrise HI contains सुबह (not AM)', () => {
+  it('body.sunrise HI contains {riseEnd} placeholder (12h time injected at runtime)', () => {
     const val = STRINGS.hi['body.sunrise'];
-    expect(val).toContain('सुबह');
-    // 'AM' should NOT appear in the HI version (we fixed this in the i18n hotfix)
+    // Template contains the placeholder; actual सुबह/शाम suffix comes from to12h() at runtime
+    expect(val).toContain('{riseEnd}');
+    // AM must NOT appear in the HI template (was a previous bug)
     expect(val).not.toContain(' AM ');
   });
   it('chip.note.pollen HI contains Devanagari', () => {
@@ -127,11 +128,13 @@ describe('getTranslatedStatusText', () => {
     expect(/[\u0900-\u097F]/.test(result)).toBe(true);
   });
 
-  it('translates sunrise_sunset "Sunset 18:38" to HI', () => {
+  it('translates sunrise_sunset "Sunset 18:38" to HI with 12h format', () => {
     const card = { id: 'sunrise_sunset', statusText: 'Sunset 18:38' };
     const result = getTranslatedStatusText(card, lang, t);
-    expect(result).toContain('सूर्यास्त');
-    expect(result).toContain('18:38');
+    expect(result).toContain('सूर्यास्त');  // contains सूर्यास्त
+    // B7: 18:38 (24h) is now rendered as 6:38 शाम (12h HI)
+    expect(result).toContain('6:38');
+    expect(result).toContain('शाम');
   });
 
   it('translates spraying Allowed', () => {

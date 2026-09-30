@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PERSONAS, MOCK_LOCATIONS } from '../data/personaData';
 import { useLanguage } from '../i18n/LanguageContext';
+import { resetWeights } from '../lib/cardWeights';
 
 const PERSONA_ICONS = {
   health: Heart, fitness: Bike, parent: Baby, commuter: Navigation,
@@ -38,6 +39,7 @@ export default function SettingsSheet({
   onLogout,
 }) {
   const [section, setSection] = useState(null); // null | 'location' | 'persona'
+  const [resetDone, setResetDone] = useState(false);
   const { lang, setLang, t } = useLanguage();
 
   const handleClose = () => { setSection(null); onClose(); };
@@ -261,8 +263,26 @@ export default function SettingsSheet({
                 </p>
               </div>
 
-              {/* ── Logout ────────────────────────────────────────────────── */}
+              {/* ── Reset personalization ─────────────────────────────────── */}
               <div className="mt-3">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    resetWeights();
+                    setResetDone(true);
+                    setTimeout(() => setResetDone(false), 2200);
+                  }}
+                  className="w-full py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {resetDone
+                    ? (lang === 'hi' ? '✔ पर्सनलाइज़ेशन रीसेट हो गया' : '✔ Personalization reset!')
+                    : (lang === 'hi' ? 'पर्सनलाइज़ेशन रीसेट करें' : 'Reset personalization')}
+                </motion.button>
+              </div>
+
+              {/* ── Logout ────────────────────────────────────────────────── */}
+              <div className="mt-2">
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={onLogout}
