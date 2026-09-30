@@ -73,10 +73,7 @@ export default function PhoneFrame({ children, isPhoneFrame, onToggleFrame }) {
           </div>
 
           {/* Phone Screen App Content */}
-          {/* transform: translateZ(0) creates a containing block for position:fixed children  */}
-          {/* so the FloatingChatbot FAB/sheet stays inside the phone frame on desktop.        */}
-          {/* On a real phone (no frame), this div doesn't exist — fixed works normally.       */}
-          <div className="flex-1 relative flex flex-col overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+          <div className="flex-1 relative flex flex-col overflow-hidden">
             {children}
           </div>
 

@@ -31,7 +31,7 @@ export default function Header({
   const { lang, setLang, t } = useLanguage();
 
   return (
-    <header className="w-full pt-3 pb-2 px-4 flex flex-col gap-3">
+    <header className="w-full pt-3.5 sm:pt-4 pb-2 px-4 flex flex-col gap-3">
       {/* Top Bar Controls (Desktop frame toggle & profile) */}
       <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
         <div className="flex items-center gap-2">

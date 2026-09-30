@@ -17,7 +17,7 @@ import { getTranslatedStatusText } from '../i18n/cardI18n';
  *   votes     {object}   — { [cardId]: 'up' | 'down' | null } lifted to HomeScreen
  *   onVote    {fn}       — (cardId, 'up' | 'down') → void
  */
-export default function WhySheet({ isOpen, onClose, card, personaId, ctx, votes = {}, onVote }) {
+export default function WhySheet({ isOpen, onClose, card, personaId, ctx, votes = {}, onVote, isPhoneFrame = false }) {
   const sheetRef = useRef(null);
   const { lang, t, tp } = useLanguage();
 
@@ -88,7 +88,7 @@ export default function WhySheet({ isOpen, onClose, card, personaId, ctx, votes 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className={`${isPhoneFrame ? 'absolute' : 'fixed'} inset-0 z-50 bg-black/40 backdrop-blur-sm`}
             onClick={onClose}
             aria-hidden="true"
           />
@@ -105,49 +105,52 @@ export default function WhySheet({ isOpen, onClose, card, personaId, ctx, votes 
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[88vh] overflow-y-auto bg-white rounded-t-[2rem] shadow-2xl shadow-slate-900/30 outline-none"
-            style={{ maxWidth: 480, margin: '0 auto' }}
+            className={`${isPhoneFrame ? 'absolute' : 'fixed'} bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2rem] shadow-2xl shadow-slate-900/30 outline-none flex flex-col`}
+            style={{ maxHeight: isPhoneFrame ? '85%' : '85dvh', maxWidth: 480, margin: '0 auto' }}
           >
-            {/* Grab handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-12 h-1 rounded-full bg-slate-200" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-start justify-between px-5 pt-2 pb-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                  {t('why.title')}
-                </p>
-                <h2 className="text-xl font-bold text-slate-900 leading-tight">
-                  {cardTitle}
-                </h2>
-                {/* Warning badge */}
-                {card.isWarning && (
-                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
-                    {t('why.pinned')}
-                  </span>
-                )}
+            {/* Sticky Header */}
+            <div className="sticky top-0 bg-white z-10 rounded-t-[2rem] border-b border-slate-100 shrink-0">
+              {/* Grab handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-12 h-1 rounded-full bg-slate-200" />
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="ml-3 shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
-              >
-                <X className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
 
-            {/* Current value badge */}
-            {card.statusText && (
-              <div className="mx-5 mb-3">
-                <div className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold border ${card.statusColor || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                  {statusBadge}
+              {/* Header content */}
+              <div className="flex items-start justify-between px-5 pt-2 pb-3">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+                    {t('why.title')}
+                  </p>
+                  <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                    {cardTitle}
+                  </h2>
+                  {/* Warning badge */}
+                  {card.isWarning && (
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
+                      {t('why.pinned')}
+                    </span>
+                  )}
                 </div>
+                <button
+                  onClick={onClose}
+                  aria-label={t('common.close')}
+                  className="shrink-0 w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-95 transition-all"
+                >
+                  <X className="w-5 h-5 stroke-[2.2]" />
+                </button>
               </div>
-            )}
+            </div>
 
-            <div className="px-5 pb-6 flex flex-col gap-5">
+            {/* Scrollable content inside sheet */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5 no-scrollbar">
+              {/* Current value badge */}
+              {card.statusText && (
+                <div>
+                  <div className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold border ${card.statusColor || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                    {statusBadge}
+                  </div>
+                </div>
+              )}
 
               {/* Why shown — whyText is kept English (technical content per spec) */}
               <Section icon={<Lightbulb className="w-4 h-4" />} label={t('why.shown_now')}>

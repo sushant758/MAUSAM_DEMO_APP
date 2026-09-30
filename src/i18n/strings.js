@@ -30,6 +30,7 @@ export const STRINGS = {
     'temp.unit':        'Temperature unit',
     'auto.switch':      'Auto-switch persona',
     'auto.switch.hint': 'Suggests the best view based on time & conditions',
+    'common.close':     'Close',
 
     // ── Banners ───────────────────────────────────────────────────────────────
     'banner.warning':   'Active weather alert · Cards with ⚠️ are pinned at top',
@@ -248,6 +249,7 @@ export const STRINGS = {
     'temp.unit':        'तापमान इकाई',
     'auto.switch':      'स्मार्ट व्यक्तित्व',
     'auto.switch.hint': 'समय और मौसम के अनुसार सर्वोत्तम दृश्य सुझाया जाएगा',
+    'common.close':     'बंद करें',
 
     // ── Banners ───────────────────────────────────────────────────────────────
     'banner.warning':   'सक्रिय मौसम चेतावनी · ⚠️ वाले कार्ड सबसे ऊपर हैं',

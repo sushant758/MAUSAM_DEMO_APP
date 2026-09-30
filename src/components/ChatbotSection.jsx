@@ -25,6 +25,7 @@ export default function ChatbotSection({
   setSharedMessages,
   sharedDraftMap,
   setSharedDraftMap,
+  embeddedMode = false,
 }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -166,31 +167,36 @@ export default function ChatbotSection({
   };
 
   return (
-    <div className="w-full bg-white rounded-[2rem] p-4 sm:p-5 shadow-md border border-slate-200/90 my-5 flex flex-col shrink-0 relative">
-      {/* Header — persona-specific title (A7 translated) */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
-            <Bot className="w-5 h-5 stroke-[2.2]" />
+    <div className={embeddedMode
+      ? "w-full h-full flex flex-col flex-1 min-h-0 bg-white"
+      : "w-full bg-white rounded-[2rem] p-4 sm:p-5 shadow-md border border-slate-200/90 my-5 flex flex-col shrink-0 relative"
+    }>
+      {/* Header — persona-specific title (omitted in embeddedMode since sheet header is present) */}
+      {!embeddedMode && (
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+              <Bot className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 leading-tight">
+                {tp('chat.heading', { persona: t(`persona.${personaId}`, persona.name) })}
+              </h3>
+              <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {t('chat.subheading')}
+              </span>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 leading-tight">
-              {tp('chat.heading', { persona: t(`persona.${personaId}`, persona.name) })}
-            </h3>
-            <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {t('chat.subheading')}
-            </span>
+          <div className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>Mausam AI</span>
           </div>
         </div>
-        <div className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
-          <Sparkles className="w-3 h-3 text-amber-500" />
-          <span>Mausam AI</span>
-        </div>
-      </div>
+      )}
 
       {/* Persona-specific suggested question chips (A7 translated) */}
-      <div className="mb-3 shrink-0">
+      <div className={embeddedMode ? "px-4 pt-2 pb-1 shrink-0" : "mb-3 shrink-0"}>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
           {t('chat.suggested')}
         </span>
@@ -216,7 +222,10 @@ export default function ChatbotSection({
       {/* Chat messages — inner scroll only, never the whole page */}
       <div
         ref={chatScrollBoxRef}
-        className="max-h-48 sm:max-h-52 overflow-y-auto pr-1 space-y-3 no-scrollbar my-2 flex-1 min-h-[90px]"
+        className={embeddedMode
+          ? "flex-1 min-h-0 overflow-y-auto px-4 space-y-3 no-scrollbar my-1"
+          : "max-h-48 sm:max-h-52 overflow-y-auto pr-1 space-y-3 no-scrollbar my-2 flex-1 min-h-[90px]"
+        }
       >
         <AnimatePresence initial={false}>
           {sharedMessages.map((msg) => (
@@ -287,7 +296,10 @@ export default function ChatbotSection({
       </div>
 
       {/* Input bar */}
-      <div className="w-full pt-3 mt-3 border-t border-slate-200 flex flex-col gap-1.5 shrink-0 bg-white">
+      <div className={embeddedMode
+        ? "w-full p-3 border-t border-slate-100 flex flex-col gap-1.5 shrink-0 bg-white"
+        : "w-full pt-3 mt-3 border-t border-slate-200 flex flex-col gap-1.5 shrink-0 bg-white"
+      }>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
           {t('chat.placeholder')}
         </span>

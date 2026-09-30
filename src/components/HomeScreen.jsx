@@ -220,8 +220,10 @@ export default function HomeScreen({
 
   useEffect(() => {
     const el = tabRefs.current[currentPersonaIndex];
-    if (el && tabRowRef.current) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const container = tabRowRef.current;
+    if (el && container) {
+      const left = el.offsetLeft - (container.clientWidth - el.clientWidth) / 2;
+      container.scrollTo({ left, behavior: 'smooth' });
     }
   }, [currentPersonaIndex]);
 
@@ -266,10 +268,11 @@ export default function HomeScreen({
   const handleWhyClose = useCallback(() => setWhyCard(null), []);
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="w-full h-full flex flex-col bg-gradient-to-b from-sky-200 via-sky-100/60 to-slate-50 text-slate-800 ios-scroll overflow-y-auto no-scrollbar pb-32 sm:pb-24 min-h-screen"
-    >
+    <div className="relative w-full h-full overflow-hidden flex flex-col">
+      <div
+        ref={scrollContainerRef}
+        className="w-full h-full flex flex-col bg-gradient-to-b from-sky-200 via-sky-100/60 to-slate-50 text-slate-800 ios-scroll overflow-y-auto no-scrollbar pb-32 sm:pb-24 flex-1"
+      >
       <Header
         location={liveLocation}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -416,6 +419,7 @@ export default function HomeScreen({
         {/* A4: "Ask Mausam Mitra" card at bottom of feed */}
         <AskMausamMitraCard onOpen={() => setChatOpen(true)} />
       </main>
+      </div>
 
       {/* A4: Floating chatbot FAB + bottom sheet */}
       <FloatingChatbot
@@ -431,6 +435,7 @@ export default function HomeScreen({
         hidden={!!whyCard || isSettingsOpen || isLocationModalOpen}
         onOpenChange={setChatOpen}
         isOpen={chatOpen}
+        isPhoneFrame={isPhoneFrame}
       />
 
       <WhySheet
@@ -441,6 +446,7 @@ export default function HomeScreen({
         ctx={activeCtx}
         votes={cardVotes}
         onVote={handleVote}
+        isPhoneFrame={isPhoneFrame}
       />
 
       <SettingsSheet
